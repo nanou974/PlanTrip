@@ -1,5 +1,5 @@
 # PlanTrip
-### Une publication de Projet Atlas
+### by Projet Atlas
 
 ![](assets/visual_identity_collection/01_Cover.png)
 

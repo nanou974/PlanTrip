@@ -17,7 +17,7 @@ Au fil de ce projet, vous trouverez des centaines de décisions. Certaines para�
 
 Je ne prétends pas avoir toujours trouvé la meilleure réponse ou fait le meilleur choix. Mais j'ai essayé de ne jamais accepter une réponse sans m'être sérieusement posé la question. C'est probablement ce qui résume le mieux ma manière de travailler. Je ne cherche pas la solution la plus impressionnante, je cherche celle qui restera la plus juste dans quelques années, qui fera le plus sens au fil du temps. Si ce document existe, ce n'est pas pour imposer une façon de penser. C'est simplement pour expliquer celle qui guide chacune de mes décisions. J'espère qu'en le refermant, vous comprendrez un peu mieux pourquoi PlanTrip est devenu ce qu'il est aujourd'hui.
 
-Et, si un jour vous décidez d'y contribuer, j'espère surtout que vous comprendrez dans quel esprit j'aimerais le voir continuer à évoluer. Si un jour ce projet doit continuer sans moi, j'espère que ces quelques mots aideront à comprendre non seulement ce que j'ai construit, mais surtout pourquoi je l'ai construit ainsi.
+Et, si un jour vous décidez d'y contribuer, j'espère surtout que vous comprendrez dans quel esprit j'aimerais le voir continuer à évoluer. Si un jour ce projet devait continuer sans moi, j'espère que ces quelques mots aideront à comprendre non seulement ce que j'ai construit, mais surtout pourquoi je l'ai construit ainsi.
 
 Bienvenue dans PlanTrip.
 

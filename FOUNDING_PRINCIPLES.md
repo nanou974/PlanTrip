@@ -1,4 +1,4 @@
-# Quelques mots avant de commencer
+# Pourquoi je construis PlanTrip d'une telle manière.
 
 Si vous lisez ce document, c'est probablement que vous venez de découvrir PlanTrip, ou que vous envisagez d'y contribuer.
 

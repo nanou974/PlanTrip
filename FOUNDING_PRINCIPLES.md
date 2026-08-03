@@ -6,7 +6,7 @@ Avant de parler d'architecture, de technologies ou de fonctionnalités, j'avais 
 
 Pas pour raconter mon histoire, pas pour expliquer comment développer un logiciel; mais simplement pour partager les raisons qui m'ont conduit à construire PlanTrip de cette manière.
 
-Au fil de ce projet, vous trouverez des centaines de décisions.Certaines paraîtront évidentes, d'autres pourront sembler étonnantes, voire inutilement exigeantes. Pourtant, aucune d'entre elles n'a été prise au hasard. Je ne crois pas aux projets qui se construisent en ajoutant des fonctionnalités au fil des idées. Je crois aux projets qui avancent avec une direction claire, une idée précise. Chaque choix que vous trouverez dans ce dépôt répond à une question que je me suis posée avant d'écrire du code:
+Au fil de ce projet, vous trouverez des centaines de décisions. Certaines paraîtront évidentes, d'autres pourront sembler étonnantes, voire inutilement exigeantes. Pourtant, aucune d'entre elles n'a été prise au hasard. Je ne crois pas aux projets qui se construisent en ajoutant des fonctionnalités au fil des idées. Je crois aux projets qui avancent avec une direction claire, une idée précise. Chaque choix que vous trouverez dans ce dépôt répond à une question que je me suis posée avant d'écrire du code:
 
 - Pourquoi cette interface ?
 - Pourquoi cette architecture ?
@@ -15,7 +15,7 @@ Au fil de ce projet, vous trouverez des centaines de décisions.Certaines paraî
 - Pourquoi ce nom ?
 - Pourquoi cet outil plutôt qu'un autre ?
 
-Je ne prétends pas avoir toujours trouvé la meilleure réponse ou fait le meilleur choix. Mais j'ai essayé de ne jamais accepter une réponse sans m'être sérieusemen posé la question. C'est probablement ce qui résume le mieux ma manière de travailler. Je ne cherche pas la solution la plus impressionnante, je cherche celle qui restera la plus juste dans quelques années, qui fera le plus sens au fil du temps. Si ce document existe, ce n'est pas pour imposer une façon de penser. C'est simplement pour expliquer celle qui guide chacune de mes décisions. J'espère qu'en le refermant, vous comprendrez un peu mieux pourquoi PlanTrip est devenu ce qu'il est aujourd'hui.
+Je ne prétends pas avoir toujours trouvé la meilleure réponse ou fait le meilleur choix. Mais j'ai essayé de ne jamais accepter une réponse sans m'être sérieusement posé la question. C'est probablement ce qui résume le mieux ma manière de travailler. Je ne cherche pas la solution la plus impressionnante, je cherche celle qui restera la plus juste dans quelques années, qui fera le plus sens au fil du temps. Si ce document existe, ce n'est pas pour imposer une façon de penser. C'est simplement pour expliquer celle qui guide chacune de mes décisions. J'espère qu'en le refermant, vous comprendrez un peu mieux pourquoi PlanTrip est devenu ce qu'il est aujourd'hui.
 
 Et, si un jour vous décidez d'y contribuer, j'espère surtout que vous comprendrez dans quel esprit j'aimerais le voir continuer à évoluer.
 

@@ -1,0 +1,30 @@
+name: presentation
+description: >
+  Écrans, controllers et widgets de PlanTrip. Dépend de `domain`,
+  `application` et `design_system` — jamais directement d'`infrastructure`.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  domain:
+    path: ../domain
+  application:
+    path: ../application
+  design_system:
+    path: ../design_system
+  flutter_riverpod: ^2.5.1
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+  result_dart: ^1.1.0
+  result_dart: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  lints: ^4.0.0

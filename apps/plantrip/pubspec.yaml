@@ -1,0 +1,35 @@
+name: plantrip
+description: >
+  Application PlanTrip — composition root du projet. Seul module
+  autorisé à connaître à la fois `presentation` et `infrastructure`,
+  pour assembler les implémentations concrètes derrière les contrats
+  attendus par la couche de présentation.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  domain:
+    path: ../../packages/domain
+  application:
+    path: ../../packages/application
+  infrastructure:
+    path: ../../packages/infrastructure
+  presentation:
+    path: ../../packages/presentation
+  design_system:
+    path: ../../packages/design_system
+  flutter_riverpod: ^2.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

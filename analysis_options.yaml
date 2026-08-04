@@ -1,0 +1,23 @@
+# Règle unique de lint pour l'ensemble du monorepo PlanTrip.
+#
+# Pourquoi un seul fichier à la racine plutôt qu'un par package ?
+# Le DevBook impose la cohérence du projet sur le long terme et refuse
+# la duplication non justifiée. Des règles de style divergentes d'un
+# package à l'autre créeraient une incohérence sans aucun bénéfice.
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    prefer_single_quotes: true
+    require_trailing_commas: true
+    avoid_print: true
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    # Un membre public non documenté dans le domaine est une dette :
+    # le DevBook considère un code sans documentation comme incomplet.
+    public_member_api_docs: warning

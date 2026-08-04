@@ -1,0 +1,30 @@
+name: infrastructure
+description: >
+  Implémentations techniques des contrats définis par `domain` :
+  persistance locale (Drift) et résolution de lieux (OpenStreetMap).
+  Seul endroit du projet où ces technologies sont nommées.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  domain:
+    path: ../domain
+  drift: ^2.19.0
+  sqlite3_flutter_libs: ^0.5.24
+  path_provider: ^2.1.3
+  path: ^1.9.0
+  http: ^1.2.1
+  result_dart: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  lints: ^4.0.0
+  drift_dev: ^2.19.0
+  build_runner: ^2.4.11

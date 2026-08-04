@@ -1,0 +1,19 @@
+name: application
+description: >
+  Cas d'usage de PlanTrip (orchestration de la logique métier).
+  Ne dépend que de `domain` : aucune connaissance de Flutter,
+  de Drift ou d'un fournisseur cartographique.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  domain:
+    path: ../domain
+  result_dart: ^1.1.0
+
+dev_dependencies:
+  lints: ^4.0.0
+  test: ^1.25.0

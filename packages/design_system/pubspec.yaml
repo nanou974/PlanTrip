@@ -1,0 +1,19 @@
+name: design_system
+description: >
+  Tokens visuels et composants réutilisables de PlanTrip
+  (couleurs, typographie). Ne dépend d'aucune autre couche du projet.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  lints: ^4.0.0

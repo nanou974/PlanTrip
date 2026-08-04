@@ -152,23 +152,23 @@ Ensemble.
 
 Je n'attends pas que chaque contribution change PlanTrip. J'espère simplement qu'elle lui apportera quelque chose d'utile. 
 
-Une idée plus claire. 
+J'espère simplement qu'elle lui apportera quelque chose d'utile.
 
-Un code plus simple. 
+Une idée plus claire.
 
-Une documentation plus précise. 
+Un code plus simple.
 
-Un détail qui rendra le projet un peu meilleur qu'hier.
-
-Une correction.
+Une documentation plus précise.
 
 Une meilleure explication.
-
-Une documentation plus claire.
 
 Un commentaire plus utile.
 
 Une fonction simplifiée.
+
+Peu importe l'ampleur de cette amélioration.
+
+Si elle rend PlanTrip un peu meilleur qu'hier, alors elle aura déjà beaucoup apporté.
 
 Aucune amélioration n'est trop petite et chaque contribution compte.
 
@@ -190,7 +190,7 @@ Un projet évolue.
 
 C'est normal.
 
-Mais il évolue beaucoup mieux lorsque l'on comprend son histoire, son origine.
+Un projet évolue. C'est normal. Mais il évolue beaucoup mieux lorsque l'on comprend son histoire... et les raisons qui lui ont donné naissance.
 
 ---
 

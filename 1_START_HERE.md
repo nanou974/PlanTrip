@@ -94,7 +94,7 @@ Ce document définit les règles qui garantissent une identité graphique cohér
 
 # 🚀 Et ensuite ?
 
-À ce stade, vous disposez de toutes les informations nécessaires pour explorer librement le dépôt. LA seule limite est l'horizon.
+À ce stade, vous disposez de toutes les informations nécessaires pour explorer librement le dépôt. Désormais, la seule limite est l'horizon.
 
 Les différents répertoires (`apps`, `packages`, `assets`, `docs`, `scripts`, `tests`, `tools`, etc.) prennent désormais tout leur sens et peuvent être découverts selon vos centres d'intérêt.
 

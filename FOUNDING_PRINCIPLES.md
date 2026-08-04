@@ -6,6 +6,12 @@ Avant de parler d'architecture, de technologies ou de fonctionnalités, j'avais 
 
 Pas pour raconter mon histoire, pas pour expliquer comment développer un logiciel; mais simplement pour partager les raisons qui m'ont conduit à construire PlanTrip de cette manière.
 
+Pendant longtemps, j'ai cru que tout ce qui me semblait évident le resterait. Avec le temps, j'ai découvert que ce n'était pas le cas. Les décisions restent. Les raisons qui les ont motivées, elles, finissent parfois par s'estomper. Alors j'ai commencé à écrire. Pas pour faire de la documentation. Pas pour remplir un dépôt GitHub.
+
+Pour ne pas perdre ce qui m'avait conduit à faire certains choix.
+
+Aujourd'hui, j'écris autant pour le Gianny de demain que pour les personnes qui découvriront un jour ce projet. Si ces pages permettent à l'un comme aux autres de comprendre pourquoi une décision a été prise, alors elles auront rempli leur rôle.
+
 Au fil de ce projet, vous trouverez des centaines de décisions. Certaines paraîtront évidentes, d'autres pourront sembler étonnantes, voire inutilement exigeantes. Pourtant, aucune d'entre elles n'a été prise au hasard. Je ne crois pas aux projets qui se construisent en ajoutant des fonctionnalités au fil des idées. Je crois aux projets qui avancent avec une direction claire, une idée précise. Chaque choix que vous trouverez dans ce dépôt répond à une question que je me suis posée avant d'écrire du code:
 
 - Pourquoi cette interface ?

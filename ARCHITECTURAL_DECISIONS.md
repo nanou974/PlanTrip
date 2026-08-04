@@ -34,25 +34,31 @@ Il explique l'architecture du projet.
 
 # Pourquoi autant de documentation ?
 
-Pendant longtemps, j'ai considéré la documentation comme quelque chose que l'on écrivait une fois le projet terminé.
+Il existe une raison évidente.
 
-Avec le temps, j'ai compris que c'était exactement l'inverse.
+La documentation facilite la découverte du projet, accompagne les nouveaux contributeurs et permet de conserver une vision cohérente de son évolution.
 
-La documentation ne décrit pas uniquement un projet.
+Mais il existe une seconde raison, beaucoup plus personnelle.
 
-Elle aide à le construire.
+Avec le temps, j'ai compris qu'une décision survit souvent plus longtemps que les raisons qui l'ont motivée.
 
-Écrire oblige à réfléchir.
+Je pouvais me souvenir d'un choix.
 
-À remettre en question ses idées.
+Beaucoup moins facilement du cheminement qui m'y avait conduit.
 
-À simplifier ce qui semblait évident.
+Alors j'ai commencé à écrire.
 
-À trouver une direction avant de commencer à avancer.
+Pas uniquement pour les autres mais pour moi aussi.
 
-Si certains documents existent avant même que certaines fonctionnalités soient développées, ce n'est pas un hasard.
+Au fil des années, cette documentation est devenue bien plus qu'une simple description du projet.
 
-C'est une manière de construire.
+Elle est devenue sa mémoire.
+
+Et, d'une certaine manière, une partie de la mienne.
+
+J'aime l'idée que, dans quelques années, je puisse relire ces pages et retrouver non seulement ce que j'ai construit, mais aussi pourquoi je l'ai construit ainsi.
+
+Si cette mémoire peut également aider d'autres personnes à comprendre les décisions qui ont façonné PlanTrip, alors elle aura largement rempli son rôle.
 
 ---
 

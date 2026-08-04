@@ -98,4 +98,4 @@ Ce document définit les règles qui garantissent une identité graphique cohér
 
 Les différents répertoires (`apps`, `packages`, `assets`, `docs`, `scripts`, `tests`, `tools`, etc.) prennent désormais tout leur sens et peuvent être découverts selon vos centres d'intérêt.
 
-Bonne visite.
+Bon voyage.

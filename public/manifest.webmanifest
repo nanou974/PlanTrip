@@ -1,0 +1,49 @@
+{
+  "name": "PlanTrip — Préparez votre voyage sur mesure",
+  "short_name": "PlanTrip",
+  "description": "Itinéraire, budget, lieux, documents et checklists dans un seul espace. Vos voyages sont conservés sur votre appareil et restent consultables hors connexion.",
+  "lang": "fr",
+  "dir": "ltr",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "browser"],
+  "background_color": "#F5F2ED",
+  "theme_color": "#2E7D5B",
+  "categories": ["travel", "navigation", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Préparer un voyage",
+      "short_name": "Préparer",
+      "url": "/preparer-son-voyage",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Mes voyages",
+      "short_name": "Voyages",
+      "url": "/mes-voyages",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

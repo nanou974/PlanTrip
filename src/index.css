@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-pt-cream text-pt-neutral antialiased font-sans;
+    font-size: 16px;
+    line-height: 1.5;
+    overflow-wrap: break-word;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5 {
+    @apply font-display;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-pt-green ring-offset-2 ring-offset-pt-cream;
+  }
+
+  ::selection {
+    @apply bg-pt-orange/40;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font-family: inherit;
+  }
+}
+
+@layer components {
+  .hero-heading {
+    @apply font-display font-bold tracking-tight leading-[1.06] text-[2.15rem] sm:text-5xl lg:text-6xl;
+  }
+
+  .section-heading {
+    @apply font-display font-semibold text-2xl sm:text-3xl tracking-tight;
+  }
+
+  .eyebrow {
+    @apply inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-pt-orange-soft border border-pt-orange/40 text-[11px] font-semibold uppercase tracking-[.12em] text-pt-orange-ink;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl border border-pt-line shadow-card;
+  }
+
+  .field-label {
+    @apply block text-xs font-semibold uppercase tracking-wider text-pt-neutral/60;
+  }
+
+  .field-input {
+    @apply w-full px-4 py-3 bg-white border border-pt-line rounded-xl text-[15px] placeholder:text-pt-neutral/40
+      focus:outline-none focus:border-pt-green focus:ring-2 focus:ring-pt-green/20 transition-colors;
+  }
+
+  .field-input-error {
+    @apply border-pt-danger focus:border-pt-danger focus:ring-pt-danger/20;
+  }
+
+  .nav-link {
+    @apply px-3 py-2 rounded-lg text-sm font-medium transition-colors;
+  }
+
+  /* Fond topographique — carte avant l'itinéraire */
+  .topo-bg {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .topo-bg::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cg fill='none' stroke='%232B2F33' stroke-width='1.1' stroke-opacity='0.16'%3E%3Cellipse cx='168' cy='150' rx='26' ry='18' transform='rotate(-12 168 150)'/%3E%3Cellipse cx='166' cy='152' rx='50' ry='34' transform='rotate(-12 166 152)'/%3E%3Cellipse cx='164' cy='154' rx='76' ry='52' transform='rotate(-14 164 154)'/%3E%3Cellipse cx='162' cy='156' rx='104' ry='72' transform='rotate(-16 162 156)'/%3E%3Cellipse cx='160' cy='158' rx='134' ry='94' transform='rotate(-18 160 158)'/%3E%3Cellipse cx='158' cy='160' rx='166' ry='118' transform='rotate(-20 158 160)'/%3E%3Cellipse cx='156' cy='162' rx='200' ry='144' transform='rotate(-22 156 162)'/%3E%3Cellipse cx='154' cy='164' rx='236' ry='172' transform='rotate(-24 154 164)'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 320px 320px;
+    background-position: center;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #2b2f3333 transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #2b2f3333;
+    border-radius: 999px;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Respecte prefers-reduced-motion — accessibilité */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

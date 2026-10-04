@@ -1,0 +1,11 @@
+{
+  "voiture": ["restaurant","fast-food","boulangerie","grande-surface","pique-nique","aucun-arret","peu-importe"],
+  "camping-car": ["cuisine-a-bord","grande-surface","boulangerie","pique-nique","fast-food","kebab","restaurant","aucun-arret","peu-importe"],
+  "van": ["cuisine-a-bord","grande-surface","boulangerie","pique-nique","fast-food","kebab","restaurant","aucun-arret","peu-importe"],
+  "voiture-sans-permis": ["boulangerie","pique-nique","restaurant","aucun-arret","peu-importe"],
+  "moto": ["boulangerie","snack","fast-food","restaurant","pique-nique","peu-importe"],
+  "velo": ["boulangerie","epicerie","grande-surface","aire-pique-nique","restaurant","peu-importe"],
+  "camion": ["restaurant","fast-food","grande-surface","aucun-arret","peu-importe"],
+  "randonnee": ["boulangerie","epicerie","aire-pique-nique","peu-importe"],
+  "cheval": ["boulangerie","pique-nique","peu-importe"]
+}

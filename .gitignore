@@ -1,0 +1,44 @@
+# Dépendances et builds
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Environnement et secrets
+.env
+.env.*
+!.env.example
+
+# Caches
+.vite/
+.vitest/
+.cache/
+coverage/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Éditeurs et OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Références historiques (documentation externe, non versionnée :
+# chartes graphiques et cahier des charges d'origine — voir README « Documentation projet »)
+PlanTrip-main/
+PlanTrip-main.zip

@@ -1,0 +1,225 @@
+[
+  {
+    "slug": "voiture",
+    "name": "Voiture",
+    "icon": "🚗",
+    "image": "/images/09651c38f_Car.png",
+    "category": "car",
+    "tagline": "Trajets classiques, autoroutes et optimisation énergie",
+    "description": "Le véhicule polyvalent par excellence. PlanTrip calcule votre itinéraire selon les vitesses réelles du réseau français, intègre les péages et pondère le carburant à partir de votre consommation déclarée. Les zones à accès restreint et les stationnements sont signalés avant le départ.",
+    "seats": 5,
+    "defaultConsumption": 7.5,
+    "consumptionUnit": "L/100km",
+    "fuel": "essence",
+    "emissions": 168,
+    "avoidTolls": false,
+    "avoidHighways": false,
+    "routing": {
+      "allowed": ["Autoroutes", "Nationales", "Départementales", "Péages"],
+      "forbidden": ["Zones interdites aux véhicules", "Rues piétonnes"],
+      "realisticSpeed": "130 km/h (autoroute) · 80 km/h (départementale)",
+      "avgSpeedKph": 110,
+      "speedNote": "Vitesse réaliste selon le type de route."
+    },
+    "constraints": [
+      { "label": "Places", "value": "4 à 5" },
+      { "label": "Hauteur", "value": "≤ 1,90 m sous parking" },
+      { "label": "Poids", "value": "≤ 2 t" },
+      { "label": "Permis", "value": "B" }
+    ],
+    "budget": {
+      "items": ["Carburant", "Péages", "Stationnement"],
+      "note": "Le poste carburant domine : renseignez votre consommation réelle pour fiabiliser le total."
+    },
+    "advice": [
+      "Activez le mode économique pour réduire consommation et péages.",
+      "Planifiez vos arrêts en fonction des aires de service."
+    ]
+  },
+  {
+    "slug": "camping-car",
+    "name": "Camping-car",
+    "icon": "🚐",
+    "image": "/images/6da546b9d_Camper.png",
+    "category": "campervan",
+    "tagline": "Hauteur, poids, aires de service et vidanges",
+    "description": "Voyager avec son domicile. Le calculateur tient compte de votre hauteur et de votre poids pour écarter les ponts, tunnels et cols incompatibles, et fait basculer le budget vers les nuitées en aires et campings dès que le trajet s'allonge.",
+    "seats": 4,
+    "defaultConsumption": 12.0,
+    "consumptionUnit": "L/100km",
+    "fuel": "diesel",
+    "emissions": 255,
+    "avoidTolls": true,
+    "avoidHighways": false,
+    "routing": {
+      "allowed": ["Routes adaptées au gabarit", "Aires de service", "Campings"],
+      "forbidden": ["Ponts trop bas", "Tunnels inaccessibles", "Cols difficiles"],
+      "realisticSpeed": "90 km/h",
+      "avgSpeedKph": 85,
+      "speedNote": "Vitesse adaptée au gabarit. Les cols sont évités automatiquement."
+    },
+    "constraints": [
+      { "label": "Places", "value": "2 à 6" },
+      { "label": "Hauteur", "value": "2,50 à 3,20 m" },
+      { "label": "Poids", "value": "≤ 3,5 t" },
+      { "label": "Permis", "value": "B (jusqu'à 3,5 t)" }
+    ],
+    "budget": {
+      "items": ["Carburant", "Aires & campings", "Eau & vidange"],
+      "note": "Sur un long trajet, les nuitées pèsent autant que le carburant : répartissez tôt la enveloppe hébergement."
+    },
+    "advice": [
+      "Renseignez votre hauteur et poids pour éviter ponts et tunnels.",
+      "Repérez les aires de service pour vidanges et eau."
+    ]
+  },
+  {
+    "slug": "voiture-sans-permis",
+    "name": "Voiture sans permis",
+    "icon": "🛵",
+    "image": "/images/0b7f837fc_VSP.png",
+    "category": "microcar",
+    "tagline": "45 km/h, voies rapides évitées, tourisme et lenteur",
+    "description": "La micro-circulation, sans autoroute ni péage. Le moteur recalcule les durées à 45 km/h, privilégie les routes pittoresques et repousse les étapes : c'est le véhicule du voyage lent, pas de la course.",
+    "seats": 2,
+    "defaultConsumption": 5.0,
+    "consumptionUnit": "L/100km",
+    "fuel": "essence",
+    "emissions": 112,
+    "avoidTolls": true,
+    "avoidHighways": true,
+    "routing": {
+      "allowed": ["Routes départementales", "Routes pittoresques", "Villages"],
+      "forbidden": ["Autoroutes", "Voies rapides"],
+      "realisticSpeed": "45 km/h",
+      "avgSpeedKph": 42,
+      "speedNote": "Les voies rapides sont automatiquement évitées."
+    },
+    "constraints": [
+      { "label": "Places", "value": "2" },
+      { "label": "Vitesse", "value": "45 km/h max" },
+      { "label": "Hauteur", "value": "Libre" },
+      { "label": "Permis", "value": "AM (dès 16 ans)" }
+    ],
+    "budget": {
+      "items": ["Énergie", "Stationnement"],
+      "note": "Aucun péage ni autoroute : le budget transport reste très bas, en échange du temps de trajet."
+    },
+    "advice": [
+      "Profitez du paysage, le trajet prendra plus de temps.",
+      "Les voies rapides sont automatiquement évitées."
+    ]
+  },
+  {
+    "slug": "moto",
+    "name": "Moto",
+    "icon": "🏍️",
+    "image": "/images/32779cbca_motorbike.png",
+    "category": "moto",
+    "tagline": "Liberté sur deux roues, routes sinueuses et paysages",
+    "description": "Le trajet devient le voyage. PlanTrip favorise les routes sinueuses, limite les étapes continues à deux heures et intègre le coût des équipements quand vous les ajoutez au budget.",
+    "seats": 2,
+    "defaultConsumption": 5.5,
+    "consumptionUnit": "L/100km",
+    "fuel": "essence",
+    "emissions": 118,
+    "avoidTolls": false,
+    "avoidHighways": false,
+    "routing": {
+      "allowed": ["Autoroutes", "Nationales", "Départementales", "Routes sinueuses"],
+      "forbidden": ["Zones interdites aux deux-roues"],
+      "realisticSpeed": "110 km/h (autoroute) · 80 km/h (départementale)",
+      "avgSpeedKph": 100,
+      "speedNote": "Vitesse réaliste selon le type de route et les limitations."
+    },
+    "constraints": [
+      { "label": "Places", "value": "2" },
+      { "label": "Poids", "value": "≤ 425 kg en ordre de marche" },
+      { "label": "Bagages", "value": "Sacoche + sacoche" },
+      { "label": "Permis", "value": "A ou A2" }
+    ],
+    "budget": {
+      "items": ["Carburant", "Péages", "Parking moto"],
+      "note": "Peu de carburant, mais pensez aux haltes régulières et à la météo."
+    },
+    "advice": [
+      "Privilégiez les routes sinueuses pour le plaisir de conduire.",
+      "Planifiez des haltes toutes les 2 heures."
+    ]
+  },
+  {
+    "slug": "velo",
+    "name": "Vélo",
+    "icon": "🚲",
+    "image": "/images/116e7905d_Bicycle.png",
+    "category": "bike",
+    "tagline": "Voyage lent, conscient, zéro pollution",
+    "description": "Sans carburant ni péage, le budget se déplace vers la nourriture et les nuitées. Le calculateur estime 60 à 120 km par jour selon le profil, choisit les voies vertes et signale les points d'eau et les ateliers.",
+    "seats": 1,
+    "defaultConsumption": null,
+    "consumptionUnit": null,
+    "fuel": "aucune",
+    "emissions": 0,
+    "avoidTolls": false,
+    "avoidHighways": true,
+    "routing": {
+      "allowed": ["Pistes cyclables", "Routes secondaires", "Voies vertes"],
+      "forbidden": ["Autoroutes", "Voies rapides", "Routes à forte circulation"],
+      "realisticSpeed": "15-25 km/h",
+      "avgSpeedKph": 18,
+      "speedNote": "Vitesse moyenne selon le relief et la condition physique."
+    },
+    "constraints": [
+      { "label": "Places", "value": "1" },
+      { "label": "Distance / jour", "value": "60 à 120 km" },
+      { "label": "Bagages", "value": "Sacosches de cadre" },
+      { "label": "Permis", "value": "Aucun" }
+    ],
+    "budget": {
+      "items": ["Restauration", "Nuitées", "Réparations"],
+      "note": "Le budget se fait en nourriture et hébergement, pas en transport."
+    },
+    "advice": [
+      "Vérifiez l'état de la chaîne et des freins.",
+      "Emportez une trousse de réparation.",
+      "Planifiez des points d'eau réguliers."
+    ]
+  },
+  {
+    "slug": "van",
+    "name": "Van",
+    "icon": "🛻",
+    "image": "/images/61952df6c_Van.png",
+    "category": "van",
+    "tagline": "Compromis entre voiture et camping-car",
+    "description": "La polyvalence d'une voiture avec le volume d'un utilitaire. PlanTrip applique les limites de hauteur et de poids du van, tout en conservant l'accès aux autoroutes lorsque vous le souhaitez.",
+    "seats": 4,
+    "defaultConsumption": 9.0,
+    "consumptionUnit": "L/100km",
+    "fuel": "diesel",
+    "emissions": 192,
+    "avoidTolls": true,
+    "avoidHighways": false,
+    "routing": {
+      "allowed": ["Autoroutes", "Nationales", "Départementales"],
+      "forbidden": ["Ponts trop bas", "Routes interdites aux poids lourds"],
+      "realisticSpeed": "90-110 km/h",
+      "avgSpeedKph": 95,
+      "speedNote": "Vitesse adaptée au gabarit du van."
+    },
+    "constraints": [
+      { "label": "Places", "value": "2 à 4" },
+      { "label": "Hauteur", "value": "2,00 à 2,50 m" },
+      { "label": "Poids", "value": "≤ 3,5 t" },
+      { "label": "Permis", "value": "B" }
+    ],
+    "budget": {
+      "items": ["Carburant", "Stationnement", "Péages"],
+      "note": "Consommation d'un utilitaire, souplesse d'une voiture : surveillez le poste carburant."
+    },
+    "advice": [
+      "Renseignez la hauteur du van pour éviter les ponts.",
+      "Planifiez vos stations-service."
+    ]
+  }
+]

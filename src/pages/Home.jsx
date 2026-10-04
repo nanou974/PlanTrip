@@ -10,7 +10,7 @@ export default function Home(){
             <span className="text-xs font-semibold text-pt-orange-ink uppercase tracking-wider">6 véhicules supportés</span>
           </div>
           <h1 className="hero-heading text-[#2B2F33] mb-6">Le GPS qui s'adapte<br/><span className="text-pt-orange-ink">à votre véhicule,</span><br/>pas l'inverse.</h1>
-          <p className="text-lg text-pt-neutral/60 max-w-2xl mx-auto mb-8 leading-relaxed">
+          <p className="text-lg text-pt-neutral/80 max-w-2xl mx-auto mb-8 leading-relaxed">
             Camping-car, moto, vélo, VSP, camion, van, randonnée... PlanTrip calcule votre itinéraire selon votre gabarit réel, votre budget et vos envies. Fini les ponts trop bas et les péages surprises.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -22,7 +22,7 @@ export default function Home(){
               <div key={v.slug} className="p-4 bg-white rounded-2xl border border-pt-line text-center">
                 <div className="text-2xl mb-1">{v.icon}</div>
                 <div className="text-xs font-medium">{v.name}</div>
-                <div className="text-[10px] text-pt-neutral/40">{v.routing.realisticSpeed}</div>
+                <div className="text-[10px] text-pt-neutral/70">{v.routing.realisticSpeed}</div>
               </div>
             ))}
           </div>
@@ -41,7 +41,7 @@ export default function Home(){
               <div key={c.title} className="p-6 bg-pt-cream rounded-2xl border border-pt-line">
                 <div className="text-3xl mb-3">{c.icon}</div>
                 <h3 className="font-bold mb-2">{c.title}</h3>
-                <p className="text-sm text-pt-neutral/60">{c.desc}</p>
+                <p className="text-sm text-pt-neutral/80">{c.desc}</p>
               </div>
             ))}
           </div>
@@ -53,7 +53,7 @@ export default function Home(){
           <h2 className="text-3xl font-bold mb-4">Prêt à construire votre voyage ?</h2>
           <p className="text-white/60 mb-8">Budget, véhicule, envies : PlanTrip arbitre et construit le meilleur itinéraire sous contrainte.</p>
           <Link to="/preparer-son-voyage" className="inline-flex px-8 py-4 bg-pt-green font-semibold rounded-xl hover:bg-[#24634A]">Démarrer — gratuit</Link>
-          <p className="text-xs text-white/40 mt-4">Hébergé chez vous, plus de limite Base44 • Contrôle total</p>
+          <p className="text-xs text-white/70 mt-4">Hébergé chez vous, plus de limite Base44 • Contrôle total</p>
         </div>
       </section>
     </div>

@@ -41,6 +41,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.js',
+    // Unitaires uniquement : les specs Playwright (e2e/) ont leur propre runner.
+    include: ['src/**/*.test.{js,jsx}'],
     css: false,
     restoreMocks: true,
     // jsdom + React : la première exécution est coûteuse, surtout en parallèle.

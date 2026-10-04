@@ -41,10 +41,10 @@ export default function Profile() {
       <div>
         <PageHeader title="Mon profil" subtitle="Connectez-vous pour retrouver vos voyages sur cet appareil." />
         <Card className="max-w-md text-center">
-          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-pt-green-soft text-pt-green mb-4">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-pt-green-soft text-pt-green-ink mb-4">
             <Icon name="user" size={24} />
           </span>
-          <p className="text-sm text-pt-neutral/65 mb-5">
+          <p className="text-sm text-pt-neutral/80 mb-5">
             PlanTrip fonctionne sans compte. La connexion sert simplement à préserver vos voyages et
             vos préférences.
           </p>
@@ -122,7 +122,7 @@ export default function Profile() {
               </span>
               <div className="min-w-0">
                 <p className="font-semibold truncate">{user.name}</p>
-                <p className="text-sm text-pt-neutral/55 truncate">
+                <p className="text-sm text-pt-neutral/80 truncate">
                   {user.email} · {user.provider}
                 </p>
               </div>
@@ -151,7 +151,7 @@ export default function Profile() {
                 Enregistrer
               </Button>
               {saved && (
-                <span className="text-sm text-pt-green inline-flex items-center gap-1.5">
+                <span className="text-sm text-pt-green-ink inline-flex items-center gap-1.5">
                   <Icon name="check-circle" size={16} />
                   Profil mis à jour
                 </span>
@@ -172,7 +172,7 @@ export default function Profile() {
               <div className="flex items-center justify-between gap-4 py-3">
                 <div>
                   <p className="text-sm font-medium">Unités</p>
-                  <p className="text-xs text-pt-neutral/55 mt-0.5">Distances et poids.</p>
+                  <p className="text-xs text-pt-neutral/80 mt-0.5">Distances et poids.</p>
                 </div>
                 <span className="w-44">
                   <SelectInput
@@ -194,16 +194,16 @@ export default function Profile() {
           <Card>
             <ul className="space-y-3 text-sm">
               <li className="flex items-center justify-between">
-                <span className="text-pt-neutral/65">Voyages enregistrés</span>
+                <span className="text-pt-neutral/80">Voyages enregistrés</span>
                 <span className="font-semibold tabular-nums">{trips.length}</span>
               </li>
               <li className="flex items-center justify-between">
-                <span className="text-pt-neutral/65">Lieux favoris</span>
+                <span className="text-pt-neutral/80">Lieux favoris</span>
                 <span className="font-semibold tabular-nums">{library.length}</span>
               </li>
               <li className="flex items-center justify-between">
-                <span className="text-pt-neutral/65">Stockage</span>
-                <span className="font-semibold text-pt-green">Sur cet appareil</span>
+                <span className="text-pt-neutral/80">Stockage</span>
+                <span className="font-semibold text-pt-green-ink">Sur cet appareil</span>
               </li>
             </ul>
 
@@ -225,13 +225,13 @@ export default function Profile() {
               <Button variant="danger" icon="trash" block onClick={() => setConfirmWipe(true)}>
                 Effacer toutes mes données
               </Button>
-              {notice && <p className="text-xs text-pt-green text-center pt-1">{notice}</p>}
+              {notice && <p className="text-xs text-pt-green-ink text-center pt-1">{notice}</p>}
             </div>
           </Card>
 
           <Card className="bg-pt-cream border-transparent">
             <p className="text-sm font-semibold mb-1.5">Hors connexion</p>
-            <p className="text-sm text-pt-neutral/65 leading-relaxed">
+            <p className="text-sm text-pt-neutral/80 leading-relaxed">
               Vos voyages restent disponibles sans réseau. Rien n’est envoyé sur un serveur : si vous
               videz le stockage de votre navigateur, ces données disparaissent — pensez à exporter.
             </p>

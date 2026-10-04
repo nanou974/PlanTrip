@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { isGeoPoint } from '../domain/itinerary.js'
+import { labelMarker } from '../lib/leaflet-a11y.js'
 import { Pill } from '../design/ui.jsx'
 import { useOnlineStatus } from '../lib/online.js'
 
@@ -92,9 +93,10 @@ export default function MapView({
       if (!isGeoPoint(m)) continue
       const ll = [Number(m.lat), Number(m.lon)]
       markerLatLngs.push(ll)
-      L.marker(ll, { icon: dotIcon(m.kind) })
-        .addTo(layer)
-        .bindPopup(m.label ? `<b>${escapeHtml(m.label)}</b>` : '')
+      const marker = L.marker(ll, { icon: dotIcon(m.kind) })
+      marker.bindPopup(m.label ? `<b>${escapeHtml(m.label)}</b>` : '')
+      labelMarker(marker, m.label || 'Point de l’itinéraire')
+      marker.addTo(layer)
     }
 
     const bounds = latlngs.length >= 2 ? latlngs : markerLatLngs

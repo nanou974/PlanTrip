@@ -9,12 +9,12 @@ export default function VehiculeDetail(){
     <div>
       <section className="py-12 bg-pt-cream">
         <div className="max-w-4xl mx-auto px-5 lg:px-8">
-          <Link to="/vehicules" className="text-sm text-pt-neutral/50 hover:text-pt-orange-ink">← Tous les véhicules</Link>
+          <Link to="/vehicules" className="text-sm text-pt-neutral/75 hover:text-pt-orange-ink">← Tous les véhicules</Link>
           <div className="flex items-center gap-4 mt-6">
             <span className="text-5xl">{v.icon}</span>
             <div>
               <h1 className="text-3xl font-extrabold">{v.name}</h1>
-              <p className="text-pt-neutral/60">{v.tagline}</p>
+              <p className="text-pt-neutral/80">{v.tagline}</p>
             </div>
           </div>
           <p className="mt-6 text-pt-neutral/70 leading-relaxed">{v.description}</p>
@@ -29,14 +29,14 @@ export default function VehiculeDetail(){
         <div className="max-w-4xl mx-auto px-5 lg:px-8 grid md:grid-cols-2 gap-8">
           <div>
             <h3 className="font-bold mb-3">Itinéraire</h3>
-            <p className="text-sm text-pt-neutral/60 mb-2">Autorisé: {v.routing.allowed.join(", ")}</p>
-            <p className="text-sm text-pt-danger/70">Évité: {v.routing.forbidden.join(", ") || "—"}</p>
-            <p className="text-xs text-pt-neutral/40 mt-2">{v.routing.speedNote}</p>
+            <p className="text-sm text-pt-neutral/80 mb-2">Autorisé: {v.routing.allowed.join(", ")}</p>
+            <p className="text-sm text-pt-danger">Évité: {v.routing.forbidden.join(", ") || "—"}</p>
+            <p className="text-xs text-pt-neutral/70 mt-2">{v.routing.speedNote}</p>
           </div>
           <div>
             <h3 className="font-bold mb-3">Budget</h3>
-            <ul className="text-sm text-pt-neutral/60 list-disc pl-5">{v.budget.items.map(i=> <li key={i}>{i}</li>)}</ul>
-            <p className="text-xs text-pt-neutral/40 mt-2">{v.budget.note}</p>
+            <ul className="text-sm text-pt-neutral/80 list-disc pl-5">{v.budget.items.map(i=> <li key={i}>{i}</li>)}</ul>
+            <p className="text-xs text-pt-neutral/70 mt-2">{v.budget.note}</p>
           </div>
         </div>
       </section>

@@ -138,7 +138,7 @@ export default function Dashboard() {
                 </span>
                 <div>
                   <p className="font-semibold text-[15px]">Un voyage est en cours de préparation</p>
-                  <p className="text-sm text-pt-neutral/65 mt-0.5">
+                  <p className="text-sm text-pt-neutral/80 mt-0.5">
                     {current?.departure?.name?.split(',')[0]} → {current?.destination?.name?.split(',')[0]}
                   </p>
                 </div>
@@ -161,7 +161,7 @@ export default function Dashboard() {
                 action={
                   <Link
                     to={`/voyages/${stats.next.id}`}
-                    className="text-sm font-semibold text-pt-green hover:underline"
+                    className="text-sm font-semibold text-pt-green-ink hover:underline"
                   >
                     Tout afficher
                   </Link>
@@ -176,7 +176,7 @@ export default function Dashboard() {
               title="Voyages récents"
               subtitle={plural(trips.length, 'voyage enregistré', 'voyages enregistrés')}
               action={
-                <Link to="/mes-voyages" className="text-sm font-semibold text-pt-green hover:underline">
+                <Link to="/mes-voyages" className="text-sm font-semibold text-pt-green-ink hover:underline">
                   Gérer
                 </Link>
               }
@@ -189,7 +189,7 @@ export default function Dashboard() {
           </section>
 
           {memory?.trips_count > 0 && (
-            <p className="mt-8 text-xs text-pt-neutral/45">
+            <p className="mt-8 text-xs text-pt-neutral/75">
               {plural(memory.trips_count, 'voyage construit', 'voyages construits')} depuis votre première visite ·
               données stockées sur cet appareil
             </p>
@@ -212,7 +212,7 @@ function NextTripBanner({ trip }) {
         {vehicle?.image ? (
           <img src={vehicle.image} alt="" className="h-11 w-11 object-contain" />
         ) : (
-          <Icon name="map" size={24} className="text-pt-green" />
+          <Icon name="map" size={24} className="text-pt-green-ink" />
         )}
       </span>
       <div className="min-w-0 flex-1">
@@ -222,16 +222,16 @@ function NextTripBanner({ trip }) {
             {trip.status === 'ongoing' ? 'En cours' : 'Prêt à partir'}
           </Pill>
         </div>
-        <p className="text-sm text-pt-neutral/60">
+        <p className="text-sm text-pt-neutral/80">
           {formatDayLabel(trip.dates?.start)} → {formatDayLabel(trip.dates?.end)} ·{' '}
           {plural(trip.dates?.days || 1, 'jour', 'jours')} · {plural(trip.travelers || 1, 'voyageur', 'voyageurs')}
         </p>
       </div>
       <div className="sm:text-right">
-        <p className="text-xs text-pt-neutral/50">Reste à dépenser</p>
-        <p className="font-display font-semibold text-xl tabular-nums text-pt-green">{formatEUR(left)}</p>
+        <p className="text-xs text-pt-neutral/75">Reste à dépenser</p>
+        <p className="font-display font-semibold text-xl tabular-nums text-pt-green-ink">{formatEUR(left)}</p>
       </div>
-      <Icon name="chevron-right" size={22} className="text-pt-neutral/30 hidden sm:block" />
+      <Icon name="chevron-right" size={22} className="text-pt-neutral/70 hidden sm:block" />
     </Link>
   )
 }

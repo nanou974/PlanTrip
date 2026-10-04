@@ -76,24 +76,29 @@ export default function BudgetOverview() {
       <Card className="mb-6">
         <div className="flex flex-wrap items-end justify-between gap-4 mb-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-pt-neutral/50">
+            <p className="text-xs font-semibold uppercase tracking-wider text-pt-neutral/75">
               Enveloppe totale
             </p>
             <p className="font-display font-bold text-3xl tabular-nums mt-1">{formatEUR(data.envelope)}</p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-pt-neutral/50">Reste à dépenser</p>
+            <p className="text-xs text-pt-neutral/75">Reste à dépenser</p>
             <p
               className={`font-display font-semibold text-2xl tabular-nums ${
-                data.left < 0 ? 'text-pt-danger' : 'text-pt-green'
+                data.left < 0 ? 'text-pt-danger' : 'text-pt-green-ink'
               }`}
             >
               {formatEUR(data.left)}
             </p>
           </div>
         </div>
-        <Progress value={data.spent} max={data.envelope || 1} tone={data.left < 0 ? 'danger' : 'green'} />
-        <div className="flex flex-wrap items-center justify-between gap-3 mt-3 text-xs text-pt-neutral/55">
+        <Progress
+          value={data.spent}
+          max={data.envelope || 1}
+          tone={data.left < 0 ? 'danger' : 'green'}
+          label="Budget global consommé"
+        />
+        <div className="flex flex-wrap items-center justify-between gap-3 mt-3 text-xs text-pt-neutral/80">
           <span>
             Dépensé {formatEUR(data.spent)} · {pctTotal} %
           </span>
@@ -116,14 +121,14 @@ export default function BudgetOverview() {
                 <div key={c.id} className="px-5 py-3.5">
                   <div className="flex items-center justify-between gap-3 mb-2">
                     <span className="inline-flex items-center gap-2.5 text-sm font-medium">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-pt-cream text-pt-neutral/60">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-pt-cream text-pt-neutral/80">
                         <Icon name={c.icon} size={15} />
                       </span>
                       {c.label}
                     </span>
                     <span className="text-sm font-semibold tabular-nums">
                       {formatEUR(value)}
-                      <span className="text-pt-neutral/40 font-normal"> · {share}%</span>
+                      <span className="text-pt-neutral/70 font-normal"> · {share}%</span>
                     </span>
                   </div>
                   <div className="h-1.5 rounded-full bg-pt-light overflow-hidden">
@@ -151,12 +156,17 @@ export default function BudgetOverview() {
                   <span className="text-sm font-semibold truncate">{trip.name}</span>
                   <span className="text-sm tabular-nums shrink-0">
                     {formatEUR(spent)}
-                    <span className="text-pt-neutral/40"> / {formatEUR(max)}</span>
+                    <span className="text-pt-neutral/70"> / {formatEUR(max)}</span>
                   </span>
                 </div>
-                <Progress value={spent} max={max || 1} tone={tone} />
+                <Progress
+                  value={spent}
+                  max={max || 1}
+                  tone={tone}
+                  label={`Budget consommé — ${trip.name || 'voyage'}`}
+                />
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-xs text-pt-neutral/50">
+                  <span className="text-xs text-pt-neutral/75">
                     {formatRange(trip.dates?.start, trip.dates?.end)}
                   </span>
                   <Pill tone={tone}>{pct !== null ? formatPercent(pct) : '—'}</Pill>

@@ -110,21 +110,21 @@ function FaqPage() {
       <ul className="space-y-4">
         <li>
           <strong>Pourquoi éviter les ponts ?</strong>
-          <p className="text-pt-neutral/65 mt-1">
+          <p className="text-pt-neutral/80 mt-1">
             Le gabarit de votre véhicule impose des hauteurs et des largeurs maximales. PlanTrip
             filtre automatiquement les itinéraires incompatibles.
           </p>
         </li>
         <li>
           <strong>Comment le budget est-il calculé ?</strong>
-          <p className="text-pt-neutral/65 mt-1">
+          <p className="text-pt-neutral/80 mt-1">
             Carburant (consommation réelle × distance), péages, repas × voyageurs × jours,
             hébergement et activités. Le total se met à jour à chaque choix.
           </p>
         </li>
         <li>
           <strong>Ça fonctionne hors connexion ?</strong>
-          <p className="text-pt-neutral/65 mt-1">
+          <p className="text-pt-neutral/80 mt-1">
             Oui : après une première visite, PlanTrip s'ouvre sans réseau. Voyages, documents et
             checklists restent consultables, modifiables et exportables en GPX depuis votre
             appareil. La recherche d'adresses, le calcul d'itinéraire, les hébergements et les
@@ -133,7 +133,7 @@ function FaqPage() {
         </li>
         <li>
           <strong>PlanTrip est-il gratuit ?</strong>
-          <p className="text-pt-neutral/65 mt-1">
+          <p className="text-pt-neutral/80 mt-1">
             Oui, entièrement. Pas de carte bancaire, pas de version premium cachée.
           </p>
         </li>
@@ -159,7 +159,7 @@ function ContactPage() {
       </p>
       <div className="mt-8 card p-5">
         <h2 className="font-display font-semibold">Besoin d'aide immédiate ?</h2>
-        <p className="text-sm text-pt-neutral/65 mt-2">
+        <p className="text-sm text-pt-neutral/80 mt-2">
           La plupart des réponses se trouvent dans la FAQ. Pour un problème d'itinéraire,
           joignez le lien de votre voyage.
         </p>
@@ -177,7 +177,7 @@ function NotFoundPage() {
   return (
     <SimplePage title="404">
       <div className="text-center">
-        <p className="text-sm uppercase tracking-widest text-pt-neutral/45">Erreur 404</p>
+        <p className="text-sm uppercase tracking-widest text-pt-neutral/75">Erreur 404</p>
         <p className="mt-3 text-pt-neutral/70">Cette page n'existe pas ou a été déplacée.</p>
         <div className="mt-6 flex justify-center">
           <Button to="/" icon="home">

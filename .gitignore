@@ -16,6 +16,11 @@ dist-ssr/
 coverage/
 *.tsbuildinfo
 
+# Playwright (rapports, traces, captures)
+playwright-report/
+test-results/
+blob-report/
+
 # Logs
 logs/
 *.log

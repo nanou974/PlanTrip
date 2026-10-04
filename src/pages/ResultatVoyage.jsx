@@ -10,6 +10,7 @@ import { round2 } from '../domain/budget.js'
 import { estimateTripCosts } from '../domain/estimate.js'
 import { estimateItinerary, isGeoPoint, itineraryPoints, routePlaces } from '../domain/itinerary.js'
 import { vehicleFor, vehicleIcon } from '../lib/tripInfo.js'
+import { labelMarker } from '../lib/leaflet-a11y.js'
 import { useOnlineStatus } from '../lib/online.js'
 import {
   buildGpx,
@@ -310,12 +311,14 @@ export default function ResultatVoyage() {
       iconSize: [14, 14],
       iconAnchor: [7, 7],
     })
-    L.marker([a.lat, a.lon], { icon: startIcon })
-      .addTo(map)
-      .bindPopup(`<b>Départ</b><br>${escapeHtml(placeLabel(a))}`)
-    L.marker([b.lat, b.lon], { icon: endIcon })
-      .addTo(map)
-      .bindPopup(`<b>Arrivée</b><br>${escapeHtml(placeLabel(b))}`)
+    const startMarker = L.marker([a.lat, a.lon], { icon: startIcon })
+    startMarker.bindPopup(`<b>Départ</b><br>${escapeHtml(placeLabel(a))}`)
+    labelMarker(startMarker, `Point de départ : ${placeLabel(a)}`)
+    startMarker.addTo(map)
+    const endMarker = L.marker([b.lat, b.lon], { icon: endIcon })
+    endMarker.bindPopup(`<b>Arrivée</b><br>${escapeHtml(placeLabel(b))}`)
+    labelMarker(endMarker, `Destination : ${placeLabel(b)}`)
+    endMarker.addTo(map)
     if (coords.length >= 2) {
       const latlngs = coords.map((c) => [c[1], c[0]])
       L.polyline(latlngs, {
@@ -354,8 +357,10 @@ export default function ResultatVoyage() {
         iconSize: [20, 20],
         iconAnchor: [10, 10],
       })
-      const m = L.marker([accom.lat, accom.lon], { icon: markerIcon }).addTo(mapInstance.current)
+      const m = L.marker([accom.lat, accom.lon], { icon: markerIcon })
       const typeLabel = ACCOM_TYPE_LABEL[accom.type] || 'Autre'
+      labelMarker(m, `${typeLabel} : ${accom.name}`)
+      m.addTo(mapInstance.current)
       m.bindPopup(`<b>${escapeHtml(accom.name)}</b><br>${escapeHtml(typeLabel)}${
         accom.stars ? ` • ${escapeHtml(accom.stars)}★` : ''
       }`)
@@ -458,7 +463,7 @@ export default function ResultatVoyage() {
     routeError ||
     (trip && !canFetch ? 'Points de départ ou d’arrivée manquants : itinéraire non calculable.' : '')
 
-  if (!trip) return <div className="pt-28 text-center text-sm text-pt-neutral/50">Chargement…</div>
+  if (!trip) return <div className="pt-28 text-center text-sm text-pt-neutral/75">Chargement…</div>
 
   const baseLines = estimation
     ? estimation.lines.filter((line) => !CHOICE_LINE_IDS.includes(line.id))
@@ -566,7 +571,7 @@ export default function ResultatVoyage() {
                   </Pill>
                 )}
               </div>
-              <p className="text-sm text-pt-neutral/60">
+              <p className="text-sm text-pt-neutral/80">
                 Départ {trip.departureTime || '—'} • Arrivée {trip.arrivalTime || '—'}
               </p>
               <div className="flex flex-wrap gap-2 mt-3">
@@ -587,7 +592,7 @@ export default function ResultatVoyage() {
                 title="Carte & Hébergements"
                 action={
                   accomLoading ? (
-                    <span className="text-xs text-pt-neutral/45">Recherche d’hébergements…</span>
+                    <span className="text-xs text-pt-neutral/75">Recherche d’hébergements…</span>
                   ) : accomError ? (
                     <Pill tone="orange" icon="info">
                       {online
@@ -613,8 +618,8 @@ export default function ResultatVoyage() {
                 </div>
               ) : (
                 <div className="aspect-[16/10] rounded-xl z-0 bg-pt-cream border border-pt-line flex flex-col items-center justify-center text-center px-6">
-                  <Icon name="pin" size={22} className="text-pt-neutral/40 mb-2" />
-                  <p className="text-sm text-pt-neutral/55">
+                  <Icon name="pin" size={22} className="text-pt-neutral/70 mb-2" />
+                  <p className="text-sm text-pt-neutral/80">
                     Coordonnées manquantes : la carte est indisponible.
                   </p>
                 </div>
@@ -652,7 +657,7 @@ export default function ResultatVoyage() {
                         const chosen = choices[key] || 'none'
                         return (
                           <div key={mType}>
-                            <p className="text-xs font-semibold uppercase text-pt-neutral/50 mb-1.5 flex items-center gap-1.5">
+                            <p className="text-xs font-semibold uppercase text-pt-neutral/75 mb-1.5 flex items-center gap-1.5">
                               <Icon name={mt.icon} size={13} />
                               {mt.label}
                             </p>
@@ -669,11 +674,11 @@ export default function ResultatVoyage() {
                                     onClick={() => setMealChoice(key, opt.id)}
                                   >
                                     {opt.label}{' '}
-                                    <span className={isSelected ? 'text-white/70' : 'text-pt-neutral/45'}>
+                                    <span className={isSelected ? 'text-white' : 'text-pt-neutral/75'}>
                                       {opt.perPerson > 0 ? formatEUR(opt.perPerson) : 'gratuit'}
                                     </span>
                                     {opt.perPerson > 0 && (
-                                      <span className={isSelected ? 'text-white/60' : 'text-pt-neutral/35'}>
+                                      <span className={isSelected ? 'text-white' : 'text-pt-neutral/70'}>
                                         ({formatEUR(cost)})
                                       </span>
                                     )}
@@ -721,14 +726,14 @@ export default function ResultatVoyage() {
                           : 'border-pt-line bg-pt-cream hover:border-pt-green/30'
                       }`}
                     >
-                      <Icon name={opt.icon} size={22} className="shrink-0 text-pt-green" />
+                      <Icon name={opt.icon} size={22} className="shrink-0 text-pt-green-ink" />
                       <span className="flex-1 min-w-0">
                         <span className="block font-semibold text-sm">{opt.label}</span>
-                        <span className="block text-xs text-pt-neutral/50">{opt.desc}</span>
+                        <span className="block text-xs text-pt-neutral/75">{opt.desc}</span>
                       </span>
                       <span className="text-right shrink-0">
                         <span className="block font-bold text-sm text-pt-orange-ink">{formatEUR(perNight)}</span>
-                        <span className="block text-[10px] text-pt-neutral/40">/nuit</span>
+                        <span className="block text-[10px] text-pt-neutral/70">/nuit</span>
                       </span>
                     </Card>
                   )
@@ -751,12 +756,12 @@ export default function ResultatVoyage() {
                 {vehicle?.advice?.length ? (
                   vehicle.advice.map((a, i) => (
                     <p key={i} className="flex gap-2">
-                      <Icon name="check-circle" size={16} className="shrink-0 mt-0.5 text-pt-green" />
+                      <Icon name="check-circle" size={16} className="shrink-0 mt-0.5 text-pt-green-ink" />
                       <span>{a}</span>
                     </p>
                   ))
                 ) : (
-                  <p className="text-sm text-pt-neutral/50">Aucun conseil pour ce véhicule.</p>
+                  <p className="text-sm text-pt-neutral/75">Aucun conseil pour ce véhicule.</p>
                 )}
               </div>
             </Card>
@@ -778,7 +783,7 @@ export default function ResultatVoyage() {
                     <div key={line.id} className="flex items-start justify-between gap-3">
                       <span>
                         {line.label}
-                        <span className="block text-xs text-pt-neutral/50">{line.detail}</span>
+                        <span className="block text-xs text-pt-neutral/75">{line.detail}</span>
                       </span>
                       <span className="font-semibold shrink-0">{formatEUR(line.amount)}</span>
                     </div>
@@ -792,11 +797,11 @@ export default function ResultatVoyage() {
               )}
 
               <div className="mt-4 pt-4 border-t border-pt-green/20 space-y-1.5 text-sm">
-                <p className="text-xs font-semibold uppercase text-pt-neutral/50 mb-2">Votre sélection</p>
+                <p className="text-xs font-semibold uppercase text-pt-neutral/75 mb-2">Votre sélection</p>
                 <div className="flex items-start justify-between gap-3">
                   <span>
                     Repas ({totalMealCount} repas)
-                    <span className="block text-xs text-pt-neutral/50">
+                    <span className="block text-xs text-pt-neutral/75">
                       estimation {formatEUR(estimatedMeals)}
                     </span>
                   </span>
@@ -805,7 +810,7 @@ export default function ResultatVoyage() {
                 <div className="flex items-start justify-between gap-3">
                   <span>
                     Hébergement ({plural(nights, 'nuit', 'nuits')} · {effectiveAccom?.label || '—'})
-                    <span className="block text-xs text-pt-neutral/50">
+                    <span className="block text-xs text-pt-neutral/75">
                       estimation {formatEUR(estimatedAccom)}
                     </span>
                   </span>
@@ -820,7 +825,7 @@ export default function ResultatVoyage() {
               {budget.max > 0 ? (
                 <p
                   className={`mt-2 text-xs font-semibold ${
-                    remainingAmount < 0 ? 'text-pt-danger' : 'text-pt-green'
+                    remainingAmount < 0 ? 'text-pt-danger' : 'text-pt-green-ink'
                   }`}
                 >
                   {remainingAmount < 0
@@ -828,7 +833,7 @@ export default function ResultatVoyage() {
                     : `Reste ${formatEUR(remainingAmount)} pour activités`}
                 </p>
               ) : (
-                <p className="mt-2 text-xs text-pt-neutral/55">
+                <p className="mt-2 text-xs text-pt-neutral/80">
                   Aucune enveloppe définie : fixez un budget dans l’onglet Budget.
                 </p>
               )}
@@ -846,7 +851,7 @@ export default function ResultatVoyage() {
                   </Button>
                 </div>
               ) : (
-                <p className="text-sm text-pt-neutral/50">
+                <p className="text-sm text-pt-neutral/75">
                   Coordonnées manquantes : navigation GPS indisponible.
                 </p>
               )}
@@ -869,7 +874,7 @@ export default function ResultatVoyage() {
                 <p
                   role="status"
                   className={`text-xs mt-3 ${
-                    notice.tone === 'danger' ? 'text-pt-danger' : 'text-pt-green'
+                    notice.tone === 'danger' ? 'text-pt-danger' : 'text-pt-green-ink'
                   }`}
                 >
                   {notice.msg}

@@ -33,7 +33,7 @@ function ModeSwitch({ mode, onChange }) {
           aria-selected={mode === item.id}
           onClick={() => onChange(item.id)}
           className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-            mode === item.id ? 'bg-white shadow-sm text-pt-neutral' : 'text-pt-neutral/50 hover:text-pt-neutral'
+            mode === item.id ? 'bg-white shadow-sm text-pt-neutral' : 'text-pt-neutral/75 hover:text-pt-neutral'
           }`}
         >
           {item.label}
@@ -95,14 +95,14 @@ export default function Login() {
     <section className="bg-pt-cream topo-bg py-12">
       <div className="mx-auto max-w-md px-5">
         <h1 className="text-center font-display text-3xl font-bold">Connexion</h1>
-        <p className="mt-2 text-center text-pt-neutral/60">Retrouvez vos voyages, où que vous soyez</p>
+        <p className="mt-2 text-center text-pt-neutral/80">Retrouvez vos voyages, où que vous soyez</p>
 
         <Card className="mt-8">
           <SocialButtons onLogin={onProvider} />
 
           <div className="my-6 flex items-center gap-3">
             <span className="h-px flex-1 bg-pt-line" />
-            <span className="text-xs uppercase text-pt-neutral/40">ou</span>
+            <span className="text-xs uppercase text-pt-neutral/70">ou</span>
             <span className="h-px flex-1 bg-pt-line" />
           </div>
 
@@ -182,7 +182,7 @@ export default function Login() {
                       Code envoyé à <strong>{email}</strong>
                     </p>
                     {info && (
-                      <p className="rounded-xl border border-pt-green/20 bg-pt-green-soft p-3 text-sm text-pt-green">
+                      <p className="rounded-xl border border-pt-green/20 bg-pt-green-soft p-3 text-sm text-pt-green-ink">
                         {info}
                       </p>
                     )}
@@ -223,7 +223,7 @@ export default function Login() {
             )}
           </div>
 
-          <p className="mt-6 text-center text-sm text-pt-neutral/60">
+          <p className="mt-6 text-center text-sm text-pt-neutral/80">
             Pas de compte ?{' '}
             <Link to="/register" className="font-semibold text-pt-orange-ink hover:underline">
               Créer un compte
@@ -231,9 +231,9 @@ export default function Login() {
           </p>
         </Card>
 
-        <p className="mt-4 text-center text-xs text-pt-neutral/45">
+        <p className="mt-4 text-center text-xs text-pt-neutral/75">
           Auth locale (localStorage). Pour Google/Facebook réels, configurez un fournisseur dans{' '}
-          <code className="text-pt-neutral/60">src/lib/auth.jsx</code>.
+          <code className="text-pt-neutral/80">src/lib/auth.jsx</code>.
         </p>
       </div>
     </section>

@@ -31,7 +31,7 @@ export default function Register() {
     <section className="bg-pt-cream topo-bg py-12">
       <div className="mx-auto max-w-md px-5">
         <h1 className="text-center font-display text-3xl font-bold">Créer un compte</h1>
-        <p className="mt-2 text-center text-pt-neutral/60">Gratuit, sans carte, contrôle total</p>
+        <p className="mt-2 text-center text-pt-neutral/80">Gratuit, sans carte, contrôle total</p>
 
         <Card className="mt-8">
           <div className="grid gap-3">
@@ -48,7 +48,7 @@ export default function Register() {
 
           <div className="my-6 flex items-center gap-3">
             <span className="h-px flex-1 bg-pt-line" />
-            <span className="text-xs uppercase text-pt-neutral/40">ou</span>
+            <span className="text-xs uppercase text-pt-neutral/70">ou</span>
             <span className="h-px flex-1 bg-pt-line" />
           </div>
 
@@ -99,7 +99,7 @@ export default function Register() {
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-pt-neutral/60">
+          <p className="mt-6 text-center text-sm text-pt-neutral/80">
             Déjà inscrit ?{' '}
             <Link to="/login" className="font-semibold text-pt-orange-ink hover:underline">
               Se connecter

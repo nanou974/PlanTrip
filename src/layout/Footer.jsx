@@ -49,7 +49,7 @@ export default function Footer() {
               adapté à votre véhicule et à vos envies. Vos voyages restent consultables hors
               connexion.
             </p>
-            <p className="mt-5 text-xs text-white/45">
+            <p className="mt-5 text-xs text-white/70">
               Gratuit, sans carte bancaire. Vos données restent sur votre appareil.
             </p>
           </div>
@@ -70,7 +70,7 @@ export default function Footer() {
           ))}
         </div>
 
-        <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-white/45">
+        <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-white/70">
           <p>© 2026 PlanTrip — plantrip.fr · Fait en France</p>
           <div className="flex items-center gap-5">
             <Link to="/contact" className="hover:text-white transition-colors">

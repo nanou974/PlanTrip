@@ -162,7 +162,7 @@ export default function TripDocuments() {
           <ul className="mt-4 divide-y divide-pt-line">
             {documents.map((doc) => (
               <li key={doc.id} className="flex flex-wrap items-start gap-3 py-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-pt-cream text-pt-neutral/60">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-pt-cream text-pt-neutral/80">
                   <Icon
                     name={DOCUMENT_TYPES.find((t) => t.id === doc.type)?.icon || 'note'}
                     size={19}
@@ -175,12 +175,12 @@ export default function TripDocuments() {
                       {expiryLabel(doc) || DOCUMENT_TYPES.find((t) => t.id === doc.type)?.label}
                     </Pill>
                   </div>
-                  <p className="mt-0.5 text-sm text-pt-neutral/60">
+                  <p className="mt-0.5 text-sm text-pt-neutral/80">
                     {doc.reference && <span>Réf. {doc.reference}</span>}
                     {doc.issuer && <span> · {doc.issuer}</span>}
                     {!doc.reference && !doc.issuer && <span>—</span>}
                   </p>
-                  {doc.notes && <p className="mt-1 text-sm text-pt-neutral/50">{doc.notes}</p>}
+                  {doc.notes && <p className="mt-1 text-sm text-pt-neutral/75">{doc.notes}</p>}
                 </div>
                 <div className="flex shrink-0 gap-1">
                   <Button variant="ghost" size="sm" icon="edit" aria-label={`Modifier ${doc.title}`} onClick={() => startEdit(doc)} />

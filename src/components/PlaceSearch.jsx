@@ -95,7 +95,7 @@ export default function PlaceSearch({
         {label}
       </label>
       <div className="relative">
-        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-pt-neutral/40">
+        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-pt-neutral/70">
           <Icon name="pin" size={17} />
         </span>
         <input
@@ -118,7 +118,7 @@ export default function PlaceSearch({
           onKeyDown={onKeyDown}
         />
         {loading && (
-          <span className="absolute inset-y-0 right-3 flex items-center text-pt-neutral/45">
+          <span className="absolute inset-y-0 right-3 flex items-center text-pt-neutral/75">
             <Spinner size={16} />
           </span>
         )}
@@ -138,11 +138,11 @@ export default function PlaceSearch({
                 onClick={() => choose(place)}
                 onMouseEnter={() => setHighlight(index)}
               >
-                <Icon name="pin" size={15} className="mt-0.5 shrink-0 text-pt-green" />
+                <Icon name="pin" size={15} className="mt-0.5 shrink-0 text-pt-green-ink" />
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium">{place.name}</span>
                   {place.context && place.context !== place.name && (
-                    <span className="block truncate text-xs text-pt-neutral/50">{place.context}</span>
+                    <span className="block truncate text-xs text-pt-neutral/75">{place.context}</span>
                   )}
                 </span>
               </button>

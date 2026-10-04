@@ -57,7 +57,7 @@ export default function Accessibilite() {
           <ul className="mt-4 grid gap-4 sm:grid-cols-2">
             {COMMITMENTS.map((item) => (
               <li key={item.title} className="card p-5">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-pt-green-soft text-pt-green">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-pt-green-soft text-pt-green-ink">
                   <Icon name={item.icon} size={20} />
                 </span>
                 <h3 className="mt-3 font-display font-semibold text-pt-neutral">{item.title}</h3>

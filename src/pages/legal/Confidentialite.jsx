@@ -10,7 +10,7 @@ export default function Confidentialite() {
     >
       <div className="space-y-8 text-pt-neutral/75">
         <section className="rounded-2xl border border-pt-green/20 bg-pt-green-soft p-5">
-          <h2 className="font-display font-semibold text-lg text-pt-green">Le principe</h2>
+          <h2 className="font-display font-semibold text-lg text-pt-green-ink">Le principe</h2>
           <p className="mt-2 text-pt-neutral/80">
             PlanTrip n’a aucun compte serveur, aucune base de données distante et aucun outil de suivi
             d’audience. Voyages, budgets, documents et checklists sont enregistrés dans le{' '}

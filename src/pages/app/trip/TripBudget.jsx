@@ -175,6 +175,7 @@ export default function TripBudget() {
           tone={status === 'over' ? 'danger' : status === 'warn' ? 'orange' : 'green'}
           className="mt-4"
           showLabel
+          label="Répartition du budget"
         />
       </Card>
 
@@ -193,10 +194,10 @@ export default function TripBudget() {
                 <li key={cat.id}>
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="flex items-center gap-2 font-medium">
-                      <Icon name={cat.icon} size={16} className="text-pt-neutral/50" />
+                      <Icon name={cat.icon} size={16} className="text-pt-neutral/75" />
                       {CATEGORY_LABEL[cat.id]}
                     </span>
-                    <span className="tabular-nums text-pt-neutral/60">
+                    <span className="tabular-nums text-pt-neutral/80">
                       <strong className={used > planned ? 'text-pt-danger' : 'text-pt-neutral'}>
                         {formatEUR(used)}
                       </strong>{' '}
@@ -214,7 +215,7 @@ export default function TripBudget() {
             })}
           </ul>
         ) : (
-          <p className="mt-3 text-sm text-pt-neutral/60">
+          <p className="mt-3 text-sm text-pt-neutral/80">
             Définissez une enveloppe pour obtenir une répartition transport / hébergement / restauration /
             activités / divers.
           </p>
@@ -230,24 +231,24 @@ export default function TripBudget() {
           <ul className="mt-4 divide-y divide-pt-line">
             {estimation.lines.map((line) => (
               <li key={line.id} className="flex items-center gap-3 py-2.5">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-pt-cream text-pt-neutral/60">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-pt-cream text-pt-neutral/80">
                   <Icon name={CATEGORIES.find((c) => c.id === line.category)?.icon || 'receipt'} size={16} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">{line.label}</p>
-                  <p className="truncate text-xs text-pt-neutral/50">{line.detail}</p>
+                  <p className="truncate text-xs text-pt-neutral/75">{line.detail}</p>
                 </div>
                 <span className="shrink-0 text-sm font-semibold tabular-nums">{formatEUR(line.amount)}</span>
               </li>
             ))}
           </ul>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-pt-green-soft/70 p-4">
-            <span className="text-sm font-medium text-pt-green">Total estimé</span>
-            <span className="font-display font-bold text-xl tabular-nums text-pt-green">
+            <span className="text-sm font-medium text-pt-green-ink">Total estimé</span>
+            <span className="font-display font-bold text-xl tabular-nums text-pt-green-ink">
               {formatEUR(estimation.total)}
             </span>
           </div>
-          <p className="mt-3 text-sm text-pt-neutral/60">
+          <p className="mt-3 text-sm text-pt-neutral/80">
             {budget.max > 0
               ? estimation.total <= budget.max
                 ? `Marge de ${formatEUR(budget.max - estimation.total)} sur votre enveloppe de ${formatEUR(budget.max)}.`
@@ -344,12 +345,12 @@ export default function TripBudget() {
           <ul className="mt-4 divide-y divide-pt-line">
             {entries.map((entry) => (
               <li key={entry.id} className="flex flex-wrap items-center gap-3 py-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-pt-cream text-pt-neutral/60">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-pt-cream text-pt-neutral/80">
                   <Icon name={CATEGORIES.find((c) => c.id === entry.category)?.icon || 'receipt'} size={17} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{entry.label}</p>
-                  <p className="truncate text-xs text-pt-neutral/50">
+                  <p className="truncate text-xs text-pt-neutral/75">
                     {CATEGORY_LABEL[entry.category] || CATEGORY_LABEL.misc}
                     {entry.date ? ` · ${formatDate(entry.date, { short: true })}` : ''}
                     {entry.note ? ` · ${entry.note}` : ''}
@@ -393,7 +394,7 @@ function PillStatus({ status }) {
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
         {
-          green: 'border-pt-green/25 bg-pt-green-soft text-pt-green',
+          green: 'border-pt-green/25 bg-pt-green-soft text-pt-green-ink',
           orange: 'border-pt-orange/35 bg-pt-orange-soft text-pt-orange-ink',
           danger: 'border-pt-danger/25 bg-pt-danger-soft text-pt-danger',
         }[conf.tone]

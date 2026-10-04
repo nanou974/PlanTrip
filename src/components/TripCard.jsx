@@ -22,12 +22,12 @@ export default function TripCard({ trip, compact = false, actions }) {
             {vehicle?.image ? (
               <img src={vehicle.image} alt="" className="h-9 w-9 object-contain" />
             ) : (
-              <Icon name="suitcase" size={20} className="text-pt-neutral/50" />
+              <Icon name="suitcase" size={20} className="text-pt-neutral/75" />
             )}
           </span>
           <div className="min-w-0">
             <h3 className="font-display font-semibold text-[15px] leading-snug truncate">{trip.name}</h3>
-            <p className="text-xs text-pt-neutral/55 truncate">
+            <p className="text-xs text-pt-neutral/80 truncate">
               {formatRange(trip.dates?.start, trip.dates?.end)}
             </p>
           </div>
@@ -35,7 +35,7 @@ export default function TripCard({ trip, compact = false, actions }) {
         <Pill tone={status.tone}>{status.label}</Pill>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-pt-neutral/60">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-pt-neutral/80">
         <span className="inline-flex items-center gap-1.5">
           <Icon name="calendar" size={14} />
           {plural(days, 'jour', 'jours')}
@@ -55,26 +55,31 @@ export default function TripCard({ trip, compact = false, actions }) {
       {!compact && (
         <div>
           <div className="flex items-baseline justify-between mb-1.5">
-            <span className="text-xs text-pt-neutral/55">Dépensé sur {formatEUR(trip.budget?.max)}</span>
+            <span className="text-xs text-pt-neutral/80">Dépensé sur {formatEUR(trip.budget?.max)}</span>
             <span className="text-xs font-semibold tabular-nums">
               {formatEUR(spent)}
-              {pct !== null && <span className="text-pt-neutral/45 font-normal"> · {pct}%</span>}
+              {pct !== null && <span className="text-pt-neutral/75 font-normal"> · {pct}%</span>}
             </span>
           </div>
-          <Progress value={spent} max={trip.budget?.max || 1} tone={tone} />
+          <Progress
+            value={spent}
+            max={trip.budget?.max || 1}
+            tone={tone}
+            label={`Budget consommé — ${trip.name || 'voyage'}`}
+          />
         </div>
       )}
 
       <div className="flex items-center justify-between gap-2 pt-1 mt-auto">
         <Link
           to={`/voyages/${trip.id}`}
-          className="text-sm font-semibold text-pt-green hover:text-pt-green-dark inline-flex items-center gap-1.5"
+          className="text-sm font-semibold text-pt-green-ink hover:text-pt-green-dark inline-flex items-center gap-1.5"
         >
           Ouvrir
           <Icon name="chevron-right" size={15} />
         </Link>
         {actions ?? (
-          <Link to={`/voyages/${trip.id}/budget`} className="text-xs text-pt-neutral/50 hover:text-pt-neutral">
+          <Link to={`/voyages/${trip.id}/budget`} className="text-xs text-pt-neutral/75 hover:text-pt-neutral">
             Voir le budget
           </Link>
         )}

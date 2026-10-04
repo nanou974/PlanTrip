@@ -57,11 +57,11 @@
   }
 
   .field-label {
-    @apply block text-xs font-semibold uppercase tracking-wider text-pt-neutral/60;
+    @apply block text-xs font-semibold uppercase tracking-wider text-pt-neutral/80;
   }
 
   .field-input {
-    @apply w-full px-4 py-3 bg-white border border-pt-line rounded-xl text-[15px] placeholder:text-pt-neutral/40
+    @apply w-full px-4 py-3 bg-white border border-pt-line rounded-xl text-[15px] placeholder:text-pt-neutral/70
       focus:outline-none focus:border-pt-green focus:ring-2 focus:ring-pt-green/20 transition-colors;
   }
 

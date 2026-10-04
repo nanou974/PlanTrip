@@ -95,7 +95,7 @@ export default function Trips() {
         <>
           <div className="flex flex-col gap-3 mb-5">
             <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pt-neutral/40 pointer-events-none">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pt-neutral/70 pointer-events-none">
                 <Icon name="search" size={17} />
               </span>
               <TextInput
@@ -116,7 +116,7 @@ export default function Trips() {
                     type="button"
                     onClick={() => setStatus(f.id)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
-                      status === f.id ? 'bg-pt-green text-white' : 'text-pt-neutral/60 hover:bg-pt-neutral/5'
+                      status === f.id ? 'bg-pt-green text-white' : 'text-pt-neutral/80 hover:bg-pt-neutral/5'
                     }`}
                   >
                     {f.label}
@@ -124,7 +124,7 @@ export default function Trips() {
                 ))}
               </div>
 
-              <label className="ml-auto flex items-center gap-2 text-xs text-pt-neutral/55">
+              <label className="ml-auto flex items-center gap-2 text-xs text-pt-neutral/80">
                 Trier
                 <span className="w-40">
                   <SelectInput id="trip-sort" value={sort} onChange={(e) => setSort(e.target.value)}>
@@ -170,7 +170,7 @@ export default function Trips() {
                         onClick={() => duplicate(trip)}
                         aria-label={`Dupliquer ${trip.name}`}
                         title="Dupliquer"
-                        className="h-8 w-8 flex items-center justify-center rounded-lg text-pt-neutral/45 hover:text-pt-green hover:bg-pt-green-soft transition-colors"
+                        className="h-8 w-8 flex items-center justify-center rounded-lg text-pt-neutral/75 hover:text-pt-green-ink hover:bg-pt-green-soft transition-colors"
                       >
                         <Icon name="copy" size={16} />
                       </button>
@@ -179,7 +179,7 @@ export default function Trips() {
                         onClick={() => setToDelete(trip)}
                         aria-label={`Supprimer ${trip.name}`}
                         title="Supprimer"
-                        className="h-8 w-8 flex items-center justify-center rounded-lg text-pt-neutral/45 hover:text-pt-danger hover:bg-pt-danger-soft transition-colors"
+                        className="h-8 w-8 flex items-center justify-center rounded-lg text-pt-neutral/75 hover:text-pt-danger hover:bg-pt-danger-soft transition-colors"
                       >
                         <Icon name="trash" size={16} />
                       </button>

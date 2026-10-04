@@ -52,25 +52,39 @@ npm run preview  # sert dist/ après build
 | --- | --- |
 | `npm run dev` | serveur Vite en développement |
 | `npm run lint` | oxlint sur `src/` (0 erreur / 0 warning attendus) |
-| `npm run test` | `vitest run` (17 fichiers de test) |
+| `npm run test` | `vitest run` — tests unitaires uniquement (17 fichiers, `src/**/*.test.*`) |
 | `npm run test:watch` | mode suivi |
 | `npm run build` | bundle de production dans `dist/` |
 | `npm run preview` | sert le bundle généré |
+| `npm run test:e2e` | Playwright contre le build de production (parcours, routes, compte, hors connexion, accessibilité) |
+| `npm run test:a11y` | audit axe-core seul (`e2e/a11y.spec.js`) |
 | `npm run verify` | `lint && test && build` (gate de qualité) |
+
+Les trois suites sont **séparées** : `npm test` ne lance jamais Playwright (Vitest ignore
+`e2e/`), `npm run test:e2e` lance les specs Playwright, `npm run test:a11y` ne lance que
+l'audit WCAG.
 
 ## CI GitHub Actions
 
-`.github/workflows/verify.yml` exécute la même commande que le gate local, sur chaque
-**push** et chaque **pull request** :
+`.github/workflows/verify.yml` exécute sur chaque **push** et chaque **pull request** :
 
 1. `actions/checkout@v4`
 2. `actions/setup-node@v4` — Node 24 (LTS) + cache npm
 3. `npm ci` — installation strictement depuis `package-lock.json`
 4. `npm run verify` — oxlint, Vitest, Vite build
+5. `npx playwright install --with-deps chromium` — navigateur de test (cache `~/.cache/ms-playwright`
+   clé sur la version de `@playwright/test`)
+6. `npm run test:e2e` — parcours, routes, espace applicatif, hors connexion **et** audit axe-core
+7. en cas d'échec uniquement (`if: failure()`) : upload des artefacts Playwright
+   (`playwright-report/`, `test-results/` — rapports HTML, traces, captures) avec
+   `actions/upload-artifact@v4`, rétention 7 jours
 
-La CI a un accès réseau (elle s'exécute sur GitHub), mais **les tests n'en dépendent pas** :
+La CI a un accès réseau (elle s'exécute sur GitHub), mais **les tests unitaires n'en dépendent pas** :
 `src/test/setup.js` neutralise `fetch`, un test le garantit
 (`src/test/network.test.js`) et chaque service distant possède son propre repli.
+Les tests Playwright, eux, ont besoin des services GitHub pour installer Chromium ; les
+services métier (Photon, OSRM, Overpass, tuiles OSM) y sont **mockés** (`e2e/helpers.js`),
+donc aucune dépendance à un quota externe.
 
 ## Architecture
 
@@ -214,6 +228,58 @@ npm run test
 Toute la suite est **hermétique** : `src/test/setup.js` remplace `fetch` par un stub qui refuse,
 ce qui rend la CI déterministe (pas d'appel à OSRM, Photon ou Overpass pendant les tests).
 
+### Tests de bout en bout (Playwright)
+
+```bash
+npx playwright install chromium   # une fois
+npm run test:e2e
+```
+
+- `playwright.config.js` — `testDir: e2e`, URL de base `http://127.0.0.1:4173`, Chromium,
+  `webServer` = `npm run build && npm run preview` : les parcours s'exécutent sur le
+  **bundle de production** (service worker compris). Trace + captures en cas d'échec.
+- `e2e/helpers.js` — mocks Photon/OSRM/Overpass/tuiles OSM (déterminisme), surveillance
+  des erreurs JS/console, `createTrip()` : le voyage est créé dans le contexte du test,
+  **aucun compte ni mot de passe réel n'est stocké dans le dépôt**.
+- `e2e/journey.spec.js` — accueil → préparation → véhicule → calcul → résultat → les 7 sections du voyage
+- `e2e/routes.spec.js` — 13 routes publiques + 404 : pas d'écran blanc, pas de `NaN` / `undefined`, aucune erreur JS
+- `e2e/app.spec.js` — création d'un compte local, profil, export de sauvegarde (téléchargement réel), tableau de bord, onglets
+- `e2e/offline.spec.js` — perte réseau réelle (`context.setOffline(true)`), rechargement hors ligne : SW actif, données locales, bandeau explicite
+- `e2e/a11y.spec.js` — audit axe-core (ci-dessous)
+
+39 tests Playwright au total, commandes séparées de la suite unitaire.
+
+### Audit accessibilité automatisé
+
+```bash
+npm run test:a11y
+```
+
+`@axe-core/playwright`, règles WCAG 2.1 A/AA (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`)
+sur **20 pages/états** : accueil, préparation, résultat, tableau de bord, connexion,
+création de compte, 10 pages publiques (dont le 404), 3 pages applicatives et les 7
+sections de l'espace voyage. Une seule violation fait échouer le test ; le détail
+(nœud + résumé) est écrit dans `test-results/a11y/<page>.json`.
+
+**Zéro violation**, aucune règle désactivée (ni `disableRules`, ni `exclude`) : les
+correctifs sont dans le code.
+
+- **Contraste (196 nœuds signalés au premier passage)** — paliers de texte relevés au
+  minimum AA sur tous les fonds clairs utilisés (`text-pt-neutral/30…65` → `/70…80`) ;
+  blanc translucide sur fonds foncés/verts remplacé par du blanc plein (`Footer`,
+  bandeau d'appel de l'accueil, puces de repas sélectionnées) ; numéros d'étape
+  `text-pt-orange-ink/30` → encre pleine ; `text-pt-danger/70` → `text-pt-danger` ;
+  variante de texte `pt.green-ink` (`#2C7857`) pour le vert sur fonds clairs — le vert
+  d'identité `#2E7D5B` reste inchangé pour les fonds, bordures et le manifeste.
+- **Libellés de formulaire** — `aria-label` sur les champs date, heure, budget et les
+  trois curseurs de priorité ; `htmlFor`/`id` sur les champs ville et les heures.
+- **Noms accessibles** — marqueurs Leaflet nommés via `src/lib/leaflet-a11y.js`
+  (l'icône n'existe qu'à l'événement `add` de Leaflet), barres `role="progressbar"`
+  nommées par la prop `label` de `Progress`, boutons « +/− voyageurs ».
+
+Aucune exception documentée n'est nécessaire : les sept priorités (nom accessible,
+libellés, contraste, titres, boutons/liens, focus, ARIA) sont satisfaites.
+
 ## Déploiement local
 
 Le bundle `dist/` peut être servi par n'importe quel serveur statique. Pour tester le
@@ -228,6 +294,23 @@ python serve.py      # http://localhost:8000, repli sur index.html
 
 Lien d'évitement, focus visible, contrastes AA, navigation clavier complète, libellés de
 formulaires, doubles signaux couleur/libellé. Déclaration détaillée sur `/accessibilite`.
+
+Contrôlé en continu par l'audit automatisé décrit plus haut (`npm run test:a11y`, 20
+pages, règles WCAG 2.1 A/AA, aucune règle désactivée) et exécuté dans la CI à chaque
+push.
+
+## Audit des dépendances
+
+- `npm audit --omit=dev` → **0 vulnérabilité** : aucune dépendance de production
+  (`react`, `react-dom`, `react-router-dom`, `leaflet`) n'est concernée.
+- `npm audit` complet → 5 alertes *high*, toutes dans l'outillage de build : `braces`
+  (épuisement de pile sur motifs imbriqués, GHSA-vfj7-8cjw-p6xm), remonté par
+  `micromatch` → `fast-glob` / `chokidar` → `tailwindcss@3.4.x`.
+  Le correctif proposé (`npm audit fix --force`) installe `tailwindcss@4`, rupture majeure
+  (migration du fichier de configuration et des directives `@tailwind`) : **non appliqué**,
+  et documenté ici plutôt que subi silencieusement. Le paquet vulnérable ne s'exécute que
+  lors du build, sur des motifs de fichiers internes au dépôt — jamais dans le navigateur
+  ni dans un service exposé.
 
 ## Licence
 

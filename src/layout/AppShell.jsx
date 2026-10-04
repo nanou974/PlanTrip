@@ -39,7 +39,7 @@ export default function AppShell() {
 
   const navClass = ({ isActive }) =>
     `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium min-h-[42px] transition-colors ${
-      isActive ? 'bg-pt-green-soft text-pt-green' : 'text-pt-neutral/70 hover:bg-pt-neutral/5 hover:text-pt-neutral'
+      isActive ? 'bg-pt-green-soft text-pt-green-ink' : 'text-pt-neutral/70 hover:bg-pt-neutral/5 hover:text-pt-neutral'
     }`
 
   return (
@@ -96,14 +96,14 @@ export default function AppShell() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold truncate">{user.name}</p>
-                <p className="text-xs text-pt-neutral/50 truncate">{user.email}</p>
+                <p className="text-xs text-pt-neutral/75 truncate">{user.email}</p>
               </div>
               <button
                 type="button"
                 onClick={logout}
                 aria-label="Se déconnecter"
                 title="Se déconnecter"
-                className="p-2 rounded-lg text-pt-neutral/40 hover:text-pt-danger hover:bg-pt-danger-soft transition-colors"
+                className="p-2 rounded-lg text-pt-neutral/70 hover:text-pt-danger hover:bg-pt-danger-soft transition-colors"
               >
                 <Icon name="external" size={17} />
               </button>
@@ -113,14 +113,14 @@ export default function AppShell() {
               <Button to="/login" variant="secondary" size="sm" block>
                 Connexion
               </Button>
-              <p className="text-[11px] text-pt-neutral/45 text-center leading-snug px-2">
+              <p className="text-[11px] text-pt-neutral/75 text-center leading-snug px-2">
                 Créez un compte pour retrouver vos voyages partout.
               </p>
             </div>
           )}
           <Link
             to="/"
-            className="mt-2 flex items-center justify-center gap-1.5 text-[11px] text-pt-neutral/45 hover:text-pt-neutral py-1.5"
+            className="mt-2 flex items-center justify-center gap-1.5 text-[11px] text-pt-neutral/75 hover:text-pt-neutral py-1.5"
           >
             <Icon name="globe" size={13} />
             Voir le site
@@ -138,7 +138,7 @@ export default function AppShell() {
             <NavLink
               to="/preparer-son-voyage"
               aria-label="Préparer un voyage"
-              className="h-9 w-9 flex items-center justify-center rounded-xl bg-pt-green-soft text-pt-green"
+              className="h-9 w-9 flex items-center justify-center rounded-xl bg-pt-green-soft text-pt-green-ink"
             >
               <Icon name="plus" size={20} strokeWidth={2.4} />
             </NavLink>

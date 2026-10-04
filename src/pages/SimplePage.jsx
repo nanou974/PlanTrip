@@ -8,13 +8,13 @@ export default function SimplePage({ title, subtitle, icon = 'book', eyebrow, ch
           {eyebrow && <span className="eyebrow mb-4">{eyebrow}</span>}
           <div className="flex items-start gap-4">
             {icon && (
-              <span className="hidden sm:flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-pt-green-soft text-pt-green">
+              <span className="hidden sm:flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-pt-green-soft text-pt-green-ink">
                 <Icon name={icon} size={24} />
               </span>
             )}
             <div>
               <h1 className="font-display font-bold text-3xl sm:text-4xl tracking-tight">{title}</h1>
-              {subtitle && <p className="text-pt-neutral/60 mt-2 text-[15px] leading-relaxed">{subtitle}</p>}
+              {subtitle && <p className="text-pt-neutral/80 mt-2 text-[15px] leading-relaxed">{subtitle}</p>}
             </div>
           </div>
         </div>

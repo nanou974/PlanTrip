@@ -7,7 +7,7 @@ export default function Vehicules(){
       <section className="py-16 bg-pt-cream topo-bg">
         <div className="max-w-6xl mx-auto px-5 lg:px-8 text-center">
           <h1 className="hero-heading mb-4">6 véhicules.<br/><span className="text-pt-orange-ink">6 GPS différents.</span></h1>
-          <p className="text-pt-neutral/60 max-w-2xl mx-auto">Chaque véhicule a ses contraintes. PlanTrip applique les bonnes règles à chaque itinéraire.</p>
+          <p className="text-pt-neutral/80 max-w-2xl mx-auto">Chaque véhicule a ses contraintes. PlanTrip applique les bonnes règles à chaque itinéraire.</p>
         </div>
       </section>
       <section className="py-12 bg-white">
@@ -19,8 +19,8 @@ export default function Vehicules(){
                 <span className="text-xs px-2 py-1 bg-white rounded-full border border-pt-line">{v.routing.realisticSpeed}</span>
               </div>
               <h3 className="font-bold group-hover:text-pt-orange-ink">{v.name}</h3>
-              <p className="text-sm text-pt-neutral/60 mt-1 line-clamp-2">{v.tagline}</p>
-              <p className="text-xs text-pt-neutral/40 mt-3">{v.budget.items.slice(0,3).join(" • ")}</p>
+              <p className="text-sm text-pt-neutral/80 mt-1 line-clamp-2">{v.tagline}</p>
+              <p className="text-xs text-pt-neutral/70 mt-3">{v.budget.items.slice(0,3).join(" • ")}</p>
             </Link>
           ))}
         </div>

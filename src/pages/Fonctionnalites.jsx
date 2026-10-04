@@ -17,7 +17,7 @@ export default function Fonctionnalites(){
     <div>
       <section className="py-16 bg-pt-cream text-center">
         <h1 className="hero-heading">Tout pour <span className="text-pt-orange-ink">voyager mieux</span></h1>
-        <p className="text-pt-neutral/60 mt-4">12 fonctionnalités, 1 moteur : ton budget et ton véhicule décident.</p>
+        <p className="text-pt-neutral/80 mt-4">12 fonctionnalités, 1 moteur : ton budget et ton véhicule décident.</p>
       </section>
       <section className="py-12 bg-white">
         <div className="max-w-6xl mx-auto px-5 lg:px-8 grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -25,7 +25,7 @@ export default function Fonctionnalites(){
             <div key={f.title} className="p-6 rounded-2xl border border-pt-line bg-pt-cream">
               <div className="text-2xl mb-2">{f.icon}</div>
               <h3 className="font-bold">{f.title}</h3>
-              <p className="text-sm text-pt-neutral/60 mt-1">{f.desc}</p>
+              <p className="text-sm text-pt-neutral/80 mt-1">{f.desc}</p>
             </div>
           ))}
         </div>

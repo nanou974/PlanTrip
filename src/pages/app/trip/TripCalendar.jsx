@@ -64,20 +64,20 @@ export default function TripCalendar() {
             <Card className="p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-11 w-11 flex-col items-center justify-center rounded-xl bg-pt-green-soft text-pt-green">
+                  <span className="flex h-11 w-11 flex-col items-center justify-center rounded-xl bg-pt-green-soft text-pt-green-ink">
                     <span className="font-display text-sm font-bold leading-none">{day.number}</span>
                     <span className="text-[9px] uppercase tracking-wide">jour</span>
                   </span>
                   <div>
                     <p className="font-display font-semibold">
                       Jour {day.number}
-                      {day.isFirst && <span className="ml-2 text-xs font-normal text-pt-green">Départ</span>}
-                      {day.isLast && <span className="ml-2 text-xs font-normal text-pt-neutral/55">Retour</span>}
+                      {day.isFirst && <span className="ml-2 text-xs font-normal text-pt-green-ink">Départ</span>}
+                      {day.isLast && <span className="ml-2 text-xs font-normal text-pt-neutral/80">Retour</span>}
                     </p>
-                    <p className="text-sm text-pt-neutral/55">{formatDate(day.date, { weekday: true })}</p>
+                    <p className="text-sm text-pt-neutral/80">{formatDate(day.date, { weekday: true })}</p>
                   </div>
                 </div>
-                <span className="text-sm text-pt-neutral/50">
+                <span className="text-sm text-pt-neutral/75">
                   {plural(day.stops.length, 'étape', 'étapes')}
                 </span>
               </div>
@@ -89,7 +89,7 @@ export default function TripCalendar() {
                     <span className="min-w-0 flex-1 truncate text-sm font-medium">
                       {trip.departure.name || 'Départ'}
                     </span>
-                    <span className="shrink-0 text-xs text-pt-neutral/45">{trip.departureTime}</span>
+                    <span className="shrink-0 text-xs text-pt-neutral/75">{trip.departureTime}</span>
                   </li>
                 )}
 
@@ -102,7 +102,7 @@ export default function TripCalendar() {
                       {stops.indexOf(place) + 1}
                     </span>
                     <span className="min-w-0 flex-1 truncate text-sm font-medium">{place.name}</span>
-                    <label className="flex items-center gap-2 text-xs text-pt-neutral/55">
+                    <label className="flex items-center gap-2 text-xs text-pt-neutral/80">
                       Jour
                       <SelectInput
                         value={String(place.day || 1)}
@@ -126,12 +126,12 @@ export default function TripCalendar() {
                     <span className="min-w-0 flex-1 truncate text-sm font-medium">
                       {trip.destination.name || 'Arrivée'}
                     </span>
-                    <span className="shrink-0 text-xs text-pt-neutral/45">{trip.arrivalTime}</span>
+                    <span className="shrink-0 text-xs text-pt-neutral/75">{trip.arrivalTime}</span>
                   </li>
                 )}
 
                 {!day.stops.length && !day.isFirst && !day.isLast && (
-                  <li className="flex items-center gap-2.5 rounded-xl border border-dashed border-pt-line p-3 text-sm text-pt-neutral/45">
+                  <li className="flex items-center gap-2.5 rounded-xl border border-dashed border-pt-line p-3 text-sm text-pt-neutral/75">
                     <Icon name="calendar-day" size={16} />
                     Journée libre
                   </li>

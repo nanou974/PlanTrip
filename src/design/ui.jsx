@@ -19,7 +19,7 @@ const BTN_SIZE = {
 
 const BTN_VARIANT = {
   primary: 'bg-pt-green text-white hover:bg-pt-green-dark shadow-sm',
-  secondary: 'bg-white text-pt-neutral border border-pt-line hover:border-pt-green hover:text-pt-green',
+  secondary: 'bg-white text-pt-neutral border border-pt-line hover:border-pt-green hover:text-pt-green-ink',
   accent: 'bg-pt-orange text-pt-neutral hover:brightness-95 shadow-sm',
   ghost: 'text-pt-neutral/70 hover:bg-pt-neutral/5 hover:text-pt-neutral',
   danger: 'bg-pt-danger-soft text-pt-danger hover:bg-pt-danger hover:text-white',
@@ -73,7 +73,7 @@ export function IconButton({ label, icon, size = 40, className, ...rest }) {
       aria-label={label}
       title={label}
       className={cx(
-        'inline-flex items-center justify-center rounded-xl text-pt-neutral/60 hover:text-pt-neutral hover:bg-pt-neutral/5 transition-colors',
+        'inline-flex items-center justify-center rounded-xl text-pt-neutral/80 hover:text-pt-neutral hover:bg-pt-neutral/5 transition-colors',
         className,
       )}
       style={{ width: size, height: size, minWidth: size }}
@@ -101,7 +101,7 @@ export function SectionHeader({ title, subtitle, action, className }) {
     <div className={cx('flex flex-wrap items-end justify-between gap-3 mb-4', className)}>
       <div>
         <h2 className="font-display font-semibold text-lg sm:text-xl tracking-tight">{title}</h2>
-        {subtitle && <p className="text-sm text-pt-neutral/60 mt-0.5">{subtitle}</p>}
+        {subtitle && <p className="text-sm text-pt-neutral/80 mt-0.5">{subtitle}</p>}
       </div>
       {action}
     </div>
@@ -114,7 +114,7 @@ export function PageHeader({ eyebrow, title, subtitle, actions, className }) {
       <div className="min-w-0">
         {eyebrow && <p className="eyebrow mb-3">{eyebrow}</p>}
         <h1 className="font-display font-bold text-2xl sm:text-3xl tracking-tight">{title}</h1>
-        {subtitle && <p className="text-sm text-pt-neutral/60 mt-1.5 max-w-2xl">{subtitle}</p>}
+        {subtitle && <p className="text-sm text-pt-neutral/80 mt-1.5 max-w-2xl">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2.5">{actions}</div>}
     </div>
@@ -131,7 +131,7 @@ export function Divider({ className }) {
 
 const PILL_TONE = {
   neutral: 'bg-pt-light text-pt-neutral/70 border-transparent',
-  green: 'bg-pt-green-soft text-pt-green border-pt-green/20',
+  green: 'bg-pt-green-soft text-pt-green-ink border-pt-green/20',
   orange: 'bg-pt-orange-soft text-pt-orange-ink border-pt-orange/30',
   blue: 'bg-[#E8EEF4] text-pt-blue border-pt-blue/20',
   danger: 'bg-pt-danger-soft text-pt-danger border-pt-danger/20',
@@ -152,7 +152,7 @@ export function Pill({ tone = 'neutral', icon, className, children }) {
   )
 }
 
-export function Progress({ value, max = 100, tone = 'green', showLabel = false, className }) {
+export function Progress({ value, max = 100, tone = 'green', showLabel = false, label = 'Progression', className }) {
   const pct = Math.max(0, Math.min(100, Math.round((value / max) * 100)))
   const bar = { green: 'bg-pt-green', orange: 'bg-pt-orange', blue: 'bg-pt-blue', danger: 'bg-pt-danger' }[tone]
   return (
@@ -160,13 +160,14 @@ export function Progress({ value, max = 100, tone = 'green', showLabel = false, 
       <div
         className="h-2 w-full rounded-full bg-pt-light overflow-hidden"
         role="progressbar"
+        aria-label={label}
         aria-valuenow={pct}
         aria-valuemin={0}
         aria-valuemax={100}
       >
         <div className={cx('h-full rounded-full transition-all duration-500', bar)} style={{ width: `${pct}%` }} />
       </div>
-      {showLabel && <p className="text-xs text-pt-neutral/55 mt-1 text-right font-medium">{pct}%</p>}
+      {showLabel && <p className="text-xs text-pt-neutral/80 mt-1 text-right font-medium">{pct}%</p>}
     </div>
   )
 }
@@ -222,7 +223,7 @@ export function Field({ label, hint, error, required, children, id }) {
         ? children({ describedBy: hintId, invalid: Boolean(error) })
         : children}
       {hint && !error && (
-        <p id={hintId} className="text-xs text-pt-neutral/50 mt-1.5">
+        <p id={hintId} className="text-xs text-pt-neutral/75 mt-1.5">
           {hint}
         </p>
       )}
@@ -285,7 +286,7 @@ export function Toggle({ checked, onChange, label, hint, id }) {
     >
       <span>
         <span className="block text-sm font-medium">{label}</span>
-        {hint && <span className="block text-xs text-pt-neutral/55 mt-0.5">{hint}</span>}
+        {hint && <span className="block text-xs text-pt-neutral/80 mt-0.5">{hint}</span>}
       </span>
       <span className="relative inline-flex shrink-0 mt-0.5">
         <input
@@ -335,11 +336,11 @@ export function EmptyState({ icon = 'compass', title, description, action, secon
         className,
       )}
     >
-      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pt-green-soft text-pt-green mb-4">
+      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pt-green-soft text-pt-green-ink mb-4">
         <Icon name={icon} size={24} />
       </span>
       <h3 className="font-display font-semibold text-base">{title}</h3>
-      {description && <p className="text-sm text-pt-neutral/60 mt-1.5 max-w-sm">{description}</p>}
+      {description && <p className="text-sm text-pt-neutral/80 mt-1.5 max-w-sm">{description}</p>}
       {(action || secondaryAction) && (
         <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
           {action}
@@ -363,7 +364,7 @@ export function ErrorState({ title = 'Impossible de charger', description, onRet
         <Icon name="alert" size={22} />
       </span>
       <h3 className="font-display font-semibold text-base">{title}</h3>
-      {description && <p className="text-sm text-pt-neutral/65 mt-1.5 max-w-sm">{description}</p>}
+      {description && <p className="text-sm text-pt-neutral/80 mt-1.5 max-w-sm">{description}</p>}
       {onRetry && (
         <Button variant="secondary" size="sm" icon="refresh" onClick={onRetry} className="mt-4">
           Réessayer
@@ -375,7 +376,7 @@ export function ErrorState({ title = 'Impossible de charger', description, onRet
 
 export function StatTile({ icon, label, value, hint, tone = 'green' }) {
   const toneClass = {
-    green: 'bg-pt-green-soft text-pt-green',
+    green: 'bg-pt-green-soft text-pt-green-ink',
     orange: 'bg-pt-orange-soft text-pt-orange-ink',
     blue: 'bg-[#E8EEF4] text-pt-blue',
     neutral: 'bg-pt-light text-pt-neutral/70',
@@ -386,9 +387,9 @@ export function StatTile({ icon, label, value, hint, tone = 'green' }) {
         <Icon name={icon} size={18} />
       </span>
       <div className="min-w-0">
-        <p className="text-xs font-medium text-pt-neutral/55 truncate">{label}</p>
+        <p className="text-xs font-medium text-pt-neutral/80 truncate">{label}</p>
         <p className="font-display font-semibold text-lg leading-tight mt-0.5 tabular-nums">{value}</p>
-        {hint && <p className="text-[11px] text-pt-neutral/45 mt-0.5 truncate">{hint}</p>}
+        {hint && <p className="text-[11px] text-pt-neutral/75 mt-0.5 truncate">{hint}</p>}
       </div>
     </div>
   )
@@ -416,7 +417,7 @@ export function TabBar({ items, className }) {
             aria-current={active ? 'page' : undefined}
             className={cx(
               'relative flex items-center gap-2 px-3.5 py-3 text-sm font-medium whitespace-nowrap transition-colors',
-              active ? 'text-pt-green' : 'text-pt-neutral/55 hover:text-pt-neutral',
+              active ? 'text-pt-green-ink' : 'text-pt-neutral/80 hover:text-pt-neutral',
             )}
           >
             {item.icon && <Icon name={item.icon} size={16} />}

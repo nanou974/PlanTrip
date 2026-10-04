@@ -14,6 +14,9 @@ export default {
           "orange-ink": "#A85400",
           "orange-soft": "#FFF4DF",
           green: "#2E7D5B",
+          // Variante texte du vert marque : contraste AA (≥ 4,5:1) exigé sur
+          // les fonds clairs et surtout sur green-soft (WCAG 1.4.3).
+          "green-ink": "#2C7857",
           "green-dark": "#24634A",
           "green-soft": "#E8F1ED",
           sage: "#6FABA1",

@@ -103,19 +103,19 @@ export default function TripOverview() {
           </Suspense>
           <div className="mt-4 grid grid-cols-3 gap-3 text-center">
             <div className="rounded-xl bg-pt-cream p-3">
-              <p className="text-[11px] uppercase tracking-wide text-pt-neutral/45">Distance</p>
+              <p className="text-[11px] uppercase tracking-wide text-pt-neutral/75">Distance</p>
               <p className="font-display font-semibold tabular-nums mt-0.5">
                 {route.distanceKm > 0 ? formatDistance(route.distanceKm * 1000) : '—'}
               </p>
             </div>
             <div className="rounded-xl bg-pt-cream p-3">
-              <p className="text-[11px] uppercase tracking-wide text-pt-neutral/45">Durée</p>
+              <p className="text-[11px] uppercase tracking-wide text-pt-neutral/75">Durée</p>
               <p className="font-display font-semibold tabular-nums mt-0.5">
                 {route.durationSec > 0 ? formatDuration(route.durationSec) : '—'}
               </p>
             </div>
             <div className="rounded-xl bg-pt-cream p-3">
-              <p className="text-[11px] uppercase tracking-wide text-pt-neutral/45">Étapes</p>
+              <p className="text-[11px] uppercase tracking-wide text-pt-neutral/75">Étapes</p>
               <p className="font-display font-semibold tabular-nums mt-0.5">{places.length}</p>
             </div>
           </div>
@@ -133,22 +133,23 @@ export default function TripOverview() {
             />
             <p className="font-display font-bold text-2xl tabular-nums mt-1">
               {formatEUR(spent)}
-              <span className="text-base font-normal text-pt-neutral/40"> / {formatEUR(trip.budget?.max)}</span>
+              <span className="text-base font-normal text-pt-neutral/70"> / {formatEUR(trip.budget?.max)}</span>
             </p>
             <Progress
               value={Math.min(100, pct ?? 0)}
               tone={budgetStatus(trip.budget) === 'over' ? 'danger' : budgetStatus(trip.budget) === 'warn' ? 'orange' : 'green'}
               className="mt-3"
+              label="Budget consommé"
             />
             {top && (
-              <p className="text-sm text-pt-neutral/60 mt-3">
+              <p className="text-sm text-pt-neutral/80 mt-3">
                 Poste le plus élevé : <strong className="text-pt-neutral">{CATEGORY_LABEL[top.id]}</strong> (
                 {formatEUR(top.amount)})
               </p>
             )}
             <Link
               to={`/voyages/${trip.id}/budget`}
-              className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-pt-green hover:underline"
+              className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-pt-green-ink hover:underline"
             >
               Ajouter une dépense <Icon name="arrow-right" size={15} />
             </Link>
@@ -164,17 +165,21 @@ export default function TripOverview() {
               }
             />
             {checklist.length === 0 ? (
-              <p className="text-sm text-pt-neutral/60 mt-1">
+              <p className="text-sm text-pt-neutral/80 mt-1">
                 Aucune tâche pour l’instant. Ajoutez vos démarches, réservations et préparatifs.
               </p>
             ) : (
               <>
                 <p className="font-display font-bold text-2xl tabular-nums mt-1">
                   {doneCount}
-                  <span className="text-base font-normal text-pt-neutral/40"> / {checklist.length}</span>
+                  <span className="text-base font-normal text-pt-neutral/70"> / {checklist.length}</span>
                 </p>
-                <Progress value={Math.round((doneCount / checklist.length) * 100)} className="mt-3" />
-                <p className="text-sm text-pt-neutral/60 mt-3">
+                <Progress
+                  value={Math.round((doneCount / checklist.length) * 100)}
+                  className="mt-3"
+                  label="Checklist du voyage"
+                />
+                <p className="text-sm text-pt-neutral/80 mt-3">
                   {doneCount === checklist.length ? 'Tout est prêt.' : `${checklist.length - doneCount} tâche(s) restante(s)`}
                 </p>
               </>
@@ -185,7 +190,7 @@ export default function TripOverview() {
             <SectionHeader title="Rappels" />
             <ul className="mt-1 space-y-2.5 text-sm text-pt-neutral/70">
               <li className="flex gap-2.5">
-                <Icon name="calendar" size={16} className="text-pt-green shrink-0 mt-0.5" />
+                <Icon name="calendar" size={16} className="text-pt-green-ink shrink-0 mt-0.5" />
                 {trip.dates?.start ? (
                   <span>Départ le {formatDate(trip.dates.start, { weekday: true })}</span>
                 ) : (
@@ -193,13 +198,13 @@ export default function TripOverview() {
                 )}
               </li>
               <li className="flex gap-2.5">
-                <Icon name="pin" size={16} className="text-pt-green shrink-0 mt-0.5" />
+                <Icon name="pin" size={16} className="text-pt-green-ink shrink-0 mt-0.5" />
                 <span>
                   {places.length} {plural(places.length, 'lieu enregistré', 'lieux enregistrés')}
                 </span>
               </li>
               <li className="flex gap-2.5">
-                <Icon name="id-card" size={16} className="text-pt-green shrink-0 mt-0.5" />
+                <Icon name="id-card" size={16} className="text-pt-green-ink shrink-0 mt-0.5" />
                 <span>
                   {(trip.documents || []).length} {(trip.documents || []).length > 1 ? 'documents' : 'document'}
                 </span>

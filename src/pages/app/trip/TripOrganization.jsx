@@ -88,8 +88,13 @@ export default function TripOrganization() {
         />
         <div className="mt-4 flex flex-wrap items-center gap-5">
           <div className="min-w-[220px] flex-1">
-            <Progress value={progress.pct} tone={progress.pct === 100 ? 'green' : 'blue'} showLabel />
-            <p className="mt-2 text-sm text-pt-neutral/60">
+            <Progress
+              value={progress.pct}
+              tone={progress.pct === 100 ? 'green' : 'blue'}
+              showLabel
+              label="Progression de l’organisation"
+            />
+            <p className="mt-2 text-sm text-pt-neutral/80">
               <strong className="text-pt-neutral">{progress.done}</strong> sur {progress.total} terminée
               {progress.total > 1 ? 's' : ''}
               {progress.remaining > 0 ? ` · ${plural(progress.remaining, 'tâche restante', 'tâches restantes')}` : ''}
@@ -118,10 +123,10 @@ export default function TripOrganization() {
                 <span
                   className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${
                     {
-                      green: 'bg-pt-green-soft text-pt-green',
+                      green: 'bg-pt-green-soft text-pt-green-ink',
                       orange: 'bg-pt-orange-soft text-pt-orange-ink',
                       danger: 'bg-pt-danger-soft text-pt-danger',
-                      neutral: 'bg-pt-light text-pt-neutral/60',
+                      neutral: 'bg-pt-light text-pt-neutral/80',
                     }[reminder.tone]
                   }`}
                 >
@@ -129,7 +134,7 @@ export default function TripOrganization() {
                 </span>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{reminder.title}</p>
-                  <p className="text-xs text-pt-neutral/55">{reminder.detail}</p>
+                  <p className="text-xs text-pt-neutral/80">{reminder.detail}</p>
                 </div>
               </li>
             ))}
@@ -198,12 +203,12 @@ export default function TripOrganization() {
                   <label
                     htmlFor={`task-${task.id}`}
                     className={`min-w-0 flex-1 cursor-pointer text-sm ${
-                      task.done ? 'text-pt-neutral/40 line-through' : 'text-pt-neutral'
+                      task.done ? 'text-pt-neutral/70 line-through' : 'text-pt-neutral'
                     }`}
                   >
                     {task.title}
                     {task.dueDate && (
-                      <span className="mt-0.5 block text-xs text-pt-neutral/50">Échéance : {task.dueDate}</span>
+                      <span className="mt-0.5 block text-xs text-pt-neutral/75">Échéance : {task.dueDate}</span>
                     )}
                   </label>
                   <Button
@@ -236,12 +241,12 @@ export default function TripOrganization() {
           <Button icon="check" onClick={saveNotes} disabled={notes === (trip.notes || '')}>
             Enregistrer les notes
           </Button>
-          {notesSaved && <span className="text-sm text-pt-green">Notes enregistrées.</span>}
+          {notesSaved && <span className="text-sm text-pt-green-ink">Notes enregistrées.</span>}
         </div>
       </Card>
 
       <Card className="p-5 flex items-start gap-3 bg-pt-cream">
-        <Icon name="bell" size={18} className="mt-0.5 shrink-0 text-pt-green" />
+        <Icon name="bell" size={18} className="mt-0.5 shrink-0 text-pt-green-ink" />
         <p className="text-sm text-pt-neutral/70">
           Les tâches sont conservées localement : rien n’est envoyé à un serveur, et tout reste accessible hors
           connexion.

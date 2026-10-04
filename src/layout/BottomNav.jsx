@@ -43,7 +43,7 @@ export default function BottomNav() {
                 to={item.to}
                 aria-current={active ? 'page' : undefined}
                 className={`flex flex-col items-center justify-center gap-1 pt-2 pb-2 min-h-[56px] transition-colors ${
-                  active ? 'text-pt-green' : 'text-pt-neutral/50'
+                  active ? 'text-pt-green-ink' : 'text-pt-neutral/75'
                 }`}
               >
                 <Icon name={item.icon} size={22} strokeWidth={active ? 2.2 : 1.8} />

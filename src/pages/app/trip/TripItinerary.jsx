@@ -170,7 +170,7 @@ export default function TripItinerary() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{place.name}</p>
-                  {place.context && <p className="truncate text-xs text-pt-neutral/50">{place.context}</p>}
+                  {place.context && <p className="truncate text-xs text-pt-neutral/75">{place.context}</p>}
                 </div>
                 <div className="flex shrink-0 items-center gap-0.5">
                   <IconButton
@@ -265,7 +265,7 @@ export default function TripItinerary() {
           </div>
 
           {error && <p className="mt-2 text-sm text-pt-danger">{error}</p>}
-          {!error && notice && <p className="mt-2 text-sm text-pt-green">{notice}</p>}
+          {!error && notice && <p className="mt-2 text-sm text-pt-green-ink">{notice}</p>}
         </Card>
 
         <Card className="p-5 sm:p-6">
@@ -277,19 +277,19 @@ export default function TripItinerary() {
             <ol className="mt-3 max-h-80 space-y-1.5 overflow-y-auto pr-1">
               {route.steps.map((step, index) => (
                 <li key={`${index}-${step.instruction}`} className="flex items-start gap-3 text-sm">
-                  <span className="mt-0.5 w-6 shrink-0 text-right font-mono text-xs text-pt-neutral/35">{index + 1}</span>
+                  <span className="mt-0.5 w-6 shrink-0 text-right font-mono text-xs text-pt-neutral/70">{index + 1}</span>
                   <span className="min-w-0 flex-1">
                     <span className="font-medium">{step.instruction}</span>
-                    {step.name && <span className="text-pt-neutral/55"> · {step.name}</span>}
+                    {step.name && <span className="text-pt-neutral/80"> · {step.name}</span>}
                   </span>
-                  <span className="shrink-0 text-xs tabular-nums text-pt-neutral/45">
+                  <span className="shrink-0 text-xs tabular-nums text-pt-neutral/75">
                     {step.distance > 0 ? formatDistance(step.distance) : ''}
                   </span>
                 </li>
               ))}
             </ol>
           ) : (
-            <p className="mt-2 text-sm text-pt-neutral/60">
+            <p className="mt-2 text-sm text-pt-neutral/80">
               {busy
                 ? 'Calcul de l’itinéraire…'
                 : 'Aucune indication détaillée : le tracé est une estimation directe entre les points.'}
@@ -311,12 +311,12 @@ function EndpointRow({ kind, label, title, subtitle }) {
           style={{ background: isStart ? '#2E7D5B' : '#2B2F33', boxShadow: '0 0 0 1px rgba(43,47,51,.15)' }}
         />
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-pt-neutral/45">{label}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-pt-neutral/75">{label}</p>
           <p className="truncate text-sm font-medium">{title || 'Non renseigné'}</p>
-          {subtitle && <p className="truncate text-xs text-pt-neutral/50">{subtitle}</p>}
+          {subtitle && <p className="truncate text-xs text-pt-neutral/75">{subtitle}</p>}
         </div>
         {isStart && (
-          <Icon name="navigation" size={16} className="ml-auto shrink-0 text-pt-green/60" aria-hidden="true" />
+          <Icon name="navigation" size={16} className="ml-auto shrink-0 text-pt-green-ink/60" aria-hidden="true" />
         )}
       </div>
     </li>
@@ -326,11 +326,11 @@ function EndpointRow({ kind, label, title, subtitle }) {
 function Figure({ label, value, icon }) {
   return (
     <div className="rounded-xl bg-pt-cream p-3 text-center">
-      <span className="mx-auto flex h-7 w-7 items-center justify-center rounded-lg bg-white text-pt-neutral/55">
+      <span className="mx-auto flex h-7 w-7 items-center justify-center rounded-lg bg-white text-pt-neutral/80">
         <Icon name={icon} size={15} />
       </span>
       <p className="mt-1.5 font-display font-semibold tabular-nums">{value}</p>
-      <p className="text-[11px] uppercase tracking-wide text-pt-neutral/45">{label}</p>
+      <p className="text-[11px] uppercase tracking-wide text-pt-neutral/75">{label}</p>
     </div>
   )
 }

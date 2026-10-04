@@ -47,7 +47,7 @@ export default function MarketingHeader() {
                 to={item.to}
                 aria-current={active ? 'page' : undefined}
                 className={`nav-link ${
-                  active ? 'text-pt-green bg-pt-green-soft' : 'text-pt-neutral/70 hover:text-pt-neutral hover:bg-pt-neutral/5'
+                  active ? 'text-pt-green-ink bg-pt-green-soft' : 'text-pt-neutral/70 hover:text-pt-neutral hover:bg-pt-neutral/5'
                 }`}
               >
                 {item.label}
@@ -65,7 +65,7 @@ export default function MarketingHeader() {
               <button
                 type="button"
                 onClick={logout}
-                className="nav-link text-pt-neutral/45 hover:text-pt-danger"
+                className="nav-link text-pt-neutral/75 hover:text-pt-danger"
               >
                 Déconnexion
               </button>
@@ -109,7 +109,7 @@ export default function MarketingHeader() {
                   key={item.to}
                   to={item.to}
                   className={`flex items-center justify-between px-4 py-3 rounded-xl text-[15px] font-medium min-h-[44px] ${
-                    active ? 'text-pt-green bg-pt-green-soft' : 'text-pt-neutral hover:bg-pt-neutral/5'
+                    active ? 'text-pt-green-ink bg-pt-green-soft' : 'text-pt-neutral hover:bg-pt-neutral/5'
                   }`}
                 >
                   {item.label}

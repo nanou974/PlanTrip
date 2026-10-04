@@ -45,8 +45,8 @@ export default function TripLayout() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-2 mb-3 text-sm text-pt-neutral/55">
-        <Link to="/mes-voyages" className="inline-flex items-center gap-1.5 hover:text-pt-green">
+      <div className="flex flex-wrap items-center gap-2 mb-3 text-sm text-pt-neutral/80">
+        <Link to="/mes-voyages" className="inline-flex items-center gap-1.5 hover:text-pt-green-ink">
           <Icon name="arrow-left" size={15} />
           Mes voyages
         </Link>
@@ -61,7 +61,7 @@ export default function TripLayout() {
               {vehicle?.image ? (
                 <img src={vehicle.image} alt="" className="h-9 w-9 object-contain" />
               ) : (
-                <Icon name={vehicleIcon(vehicle)} size={22} className="text-pt-neutral/50" />
+                <Icon name={vehicleIcon(vehicle)} size={22} className="text-pt-neutral/75" />
               )}
             </span>
             <div className="min-w-0">
@@ -73,7 +73,7 @@ export default function TripLayout() {
                   {STATUS_LABEL[trip.status] || 'Brouillon'}
                 </Pill>
               </div>
-              <p className="text-sm text-pt-neutral/60 mt-1">
+              <p className="text-sm text-pt-neutral/80 mt-1">
                 {formatRange(trip.dates?.start, trip.dates?.end)} ·{' '}
                 {plural(trip.dates?.days || 1, 'jour', 'jours')} ·{' '}
                 {plural(trip.travelers || 1, 'voyageur', 'voyageurs')}
@@ -85,12 +85,12 @@ export default function TripLayout() {
 
           <div className="flex flex-wrap items-center gap-3">
             <div className="text-right">
-              <p className="text-xs text-pt-neutral/50">
+              <p className="text-xs text-pt-neutral/75">
                 {pct !== null ? `${pct} % dépensé` : 'Budget'}
               </p>
               <p className="font-display font-semibold text-lg tabular-nums">
                 {formatEUR(spent)}
-                <span className="text-pt-neutral/40 font-normal text-sm">
+                <span className="text-pt-neutral/70 font-normal text-sm">
                   {' '}
                   / {formatEUR(trip.budget?.max)}
                 </span>
@@ -133,7 +133,7 @@ export default function TripLayout() {
               end={tab.end}
               className={({ isActive }) =>
                 `relative flex items-center gap-2 px-3.5 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
-                  isActive ? 'text-pt-green' : 'text-pt-neutral/55 hover:text-pt-neutral'
+                  isActive ? 'text-pt-green-ink' : 'text-pt-neutral/80 hover:text-pt-neutral'
                 }`
               }
             >

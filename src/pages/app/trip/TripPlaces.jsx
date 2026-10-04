@@ -113,7 +113,7 @@ export default function TripPlaces() {
             onSelect={(place) => commit(addPlace(trip, place), `${place.name} ajouté`)}
           />
         </div>
-        {notice && <p className="mt-3 text-sm text-pt-green">{notice}</p>}
+        {notice && <p className="mt-3 text-sm text-pt-green-ink">{notice}</p>}
       </Card>
 
       <Card className="p-5 sm:p-6">
@@ -152,12 +152,12 @@ export default function TripPlaces() {
         </div>
 
         {!hasRoute && (
-          <p className="mt-3 text-sm text-pt-neutral/60">
+          <p className="mt-3 text-sm text-pt-neutral/80">
             Définissez un départ et une destination pour explorer le long de la route.
           </p>
         )}
         {searching && (
-          <p className="mt-4 flex items-center gap-2 text-sm text-pt-neutral/60">
+          <p className="mt-4 flex items-center gap-2 text-sm text-pt-neutral/80">
             <Spinner size={16} />
             Interrogation d’OpenStreetMap…
           </p>
@@ -171,12 +171,12 @@ export default function TripPlaces() {
                 key={result.id}
                 className="flex flex-wrap items-center gap-3 rounded-xl border border-pt-line bg-white p-3"
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pt-cream text-pt-green">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pt-cream text-pt-green-ink">
                   <Icon name={categoryFor(result.category).icon} size={16} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{result.name}</p>
-                  <p className="truncate text-xs text-pt-neutral/50">
+                  <p className="truncate text-xs text-pt-neutral/75">
                     {result.context} · à {formatDistance(result.distanceMeters)} du trajet
                   </p>
                 </div>
@@ -206,7 +206,7 @@ export default function TripPlaces() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="font-display font-semibold">{place.name}</p>
-                    <p className="text-sm text-pt-neutral/55">{place.context || 'Coordonnées enregistrées'}</p>
+                    <p className="text-sm text-pt-neutral/80">{place.context || 'Coordonnées enregistrées'}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Pill tone={KIND_TONE[place.kind] || 'green'} icon={KIND_ICON[place.kind]}>
@@ -294,7 +294,7 @@ export default function TripPlaces() {
       )}
 
       <Card className="p-5 flex items-start gap-3 bg-pt-cream">
-        <Icon name="info" size={18} className="mt-0.5 shrink-0 text-pt-green" />
+        <Icon name="info" size={18} className="mt-0.5 shrink-0 text-pt-green-ink" />
         <p className="text-sm text-pt-neutral/70">
           Les lieux favoris sont enregistrés sur cet appareil et réutilisables dans vos prochains voyages.
         </p>

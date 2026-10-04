@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { AuthCtx } from './authContext.js'
+import { hashPassword, verifyPassword, isPasswordHashingAvailable } from './password.js'
 const USER_KEY = "plantrip_user"
 const USERS_KEY = "plantrip_users_db"
 const OTP_KEY = "plantrip_otp"
@@ -11,6 +12,32 @@ function getUsers(){
 }
 function saveUsers(u){ localStorage.setItem(USERS_KEY, JSON.stringify(u)) }
 
+/**
+ * Passe les comptes créés avant le hachage (mot de passe en clair) au format
+ * haché. Un seul travail par session, relu juste avant écriture pour ne pas
+ * écraser un compte créé pendant le hachage.
+ */
+function migratePlaintextPasswords(){
+  if(!isPasswordHashingAvailable()) return Promise.resolve()
+  const legacy=getUsers().filter(u=>typeof u.password==="string")
+  if(!legacy.length) return Promise.resolve()
+  return legacy.reduce((chain,u)=>chain.then(async()=>{
+    const auth=await hashPassword(u.password)
+    const users=getUsers()
+    const target=users.find(x=>x.id===u.id)
+    if(target && typeof target.password==="string"){
+      target.auth=auth
+      delete target.password
+      saveUsers(users)
+    }
+  }), Promise.resolve())
+}
+let migration=null
+function ensureMigrated(){
+  if(!migration) migration=migratePlaintextPasswords().catch(()=>{}).finally(()=>{ migration=null })
+  return migration
+}
+
 export function AuthProvider({children}){
   const [user,setUser]=useState(()=>{
     try{ const v=localStorage.getItem(USER_KEY); return v?JSON.parse(v):null }catch{ return null}
@@ -19,19 +46,35 @@ export function AuthProvider({children}){
     if(user) localStorage.setItem(USER_KEY, JSON.stringify(user))
     else localStorage.removeItem(USER_KEY)
   },[user])
+  useEffect(()=>{
+    ensureMigrated()
+  },[])
 
-  function register({email,password,name}){
+  async function register({email,password,name}){
+    await ensureMigrated()
     const users=getUsers()
     if(users.find(u=>u.email===email)) throw new Error("Email déjà utilisé")
-    const nu={id:uid(), email, password, name: name||email.split("@")[0], provider:"email", avatar:null, createdAt:new Date().toISOString()}
+    const auth=await hashPassword(password)
+    const nu={id:uid(), email, name: name||email.split("@")[0], provider:"email", avatar:null, createdAt:new Date().toISOString(), auth}
     users.push(nu); saveUsers(users)
     setUser({id:nu.id,email:nu.email,name:nu.name,provider:nu.provider})
     return nu
   }
-  function login({email,password}){
+  async function login({email,password}){
+    await ensureMigrated()
     const users=getUsers()
-    const u=users.find(x=>x.email===email && x.password===password)
+    const u=users.find(x=>x.email===email)
     if(!u) throw new Error("Email ou mot de passe incorrect")
+    if(u.auth){
+      if(!await verifyPassword(password,u.auth)) throw new Error("Email ou mot de passe incorrect")
+    }else if(typeof u.password==="string"){
+      if(u.password!==password) throw new Error("Email ou mot de passe incorrect")
+      u.auth=await hashPassword(password)
+      delete u.password
+      saveUsers(users)
+    }else{
+      throw new Error("Email ou mot de passe incorrect")
+    }
     setUser({id:u.id,email:u.email,name:u.name,provider:u.provider})
     return u
   }

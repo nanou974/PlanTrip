@@ -11,11 +11,11 @@ export default function Register() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  function onSubmit(e) {
+  async function onSubmit(e) {
     e.preventDefault()
     setError('')
     try {
-      register({ email, password, name })
+      await register({ email, password, name })
       nav('/')
     } catch (err) {
       setError(err.message)

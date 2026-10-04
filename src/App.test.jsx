@@ -37,6 +37,21 @@ describe('navigation publique', () => {
     expect(screen.getByText('Questions fréquentes')).toBeTruthy()
   })
 
+  it('couvre les questions essentielles dans la FAQ', () => {
+    renderAt('/faq')
+    expect(screen.getAllByRole('listitem').length).toBeGreaterThanOrEqual(8)
+    expect(screen.getByRole('heading', { name: 'Faut-il un compte pour préparer un voyage ?' })).toBeTruthy()
+    expect(screen.getByText(/jamais écrit en clair/)).toBeTruthy()
+    expect(screen.getByText(/exportez tout en JSON/)).toBeTruthy()
+  })
+
+  it('publie de vrais articles dans le blog', () => {
+    renderAt('/blog')
+    expect(screen.getByRole('heading', { name: /Touristique, économique, rapide ou découverte/ })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: /Partir sans réseau/ })).toBeTruthy()
+    expect(screen.queryByText(/Bientôt en ligne/)).toBeNull()
+  })
+
   it('affiche le 404 pour une route inconnue', () => {
     renderAt('/introuvable')
     expect(screen.getByText(/Cette page n'existe pas ou a été déplacée/)).toBeTruthy()

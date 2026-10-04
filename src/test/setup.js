@@ -1,5 +1,14 @@
 import '@testing-library/jest-dom/vitest'
+import { webcrypto } from 'node:crypto'
 import { vi } from 'vitest'
+
+/**
+ * jsdom n'expose pas `crypto.subtle` (seulement `getRandomValues`) alors que
+ * le hachage des mots de passe en a besoin : on injecte l'implémentation Node.
+ */
+if (!globalThis.crypto?.subtle) {
+  vi.stubGlobal('crypto', webcrypto)
+}
 
 /**
  * Aucun test ne doit dépendre du réseau (CI déterministe, rapide, hors ligne) :

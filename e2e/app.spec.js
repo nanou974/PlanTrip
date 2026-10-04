@@ -30,6 +30,14 @@ test.describe('espace applicatif', () => {
     await page.waitForURL((url) => url.pathname === '/')
     await expectPageHealthy(page, issues)
 
+    // Le mot de passe n'est jamais écrit en clair : hachage PBKDF2 local
+    const storedUsers = await page.evaluate(() => localStorage.getItem('plantrip_users_db') || '[]')
+    expect(storedUsers).not.toContain(account.password)
+    const [accountRow] = JSON.parse(storedUsers)
+    expect(accountRow.email).toBe(account.email)
+    expect(accountRow.password).toBeUndefined()
+    expect(accountRow.auth).toMatchObject({ algo: 'PBKDF2-SHA256' })
+
     // Profil : compte local, aucun appel réseau
     await page.goto('/mon-profil')
     await expect(page.locator('#profile-name')).toHaveValue(account.name)
@@ -41,6 +49,19 @@ test.describe('espace applicatif', () => {
     await page.getByRole('button', { name: 'Exporter ma sauvegarde' }).click()
     const download = await downloadPromise
     expect(download.suggestedFilename()).toMatch(/^plantrip-sauvegarde-\d{4}-\d{2}-\d{2}\.json$/)
+
+    // Déconnexion puis reconnexion : la vérification du mot de passe est asynchrone
+    await page.locator('#contenu').getByRole('button', { name: 'Se déconnecter', exact: true }).click()
+    await page.waitForURL((url) => url.pathname === '/')
+    await expect(page.getByRole('button', { name: 'Déconnexion', exact: true })).toHaveCount(0)
+
+    await page.goto('/login')
+    await page.locator('#login-email').fill(account.email)
+    await page.locator('#login-password').fill(account.password)
+    await page.getByRole('button', { name: 'Se connecter', exact: true }).click()
+    await page.waitForURL((url) => url.pathname === '/')
+    await expect(page.getByRole('button', { name: 'Déconnexion', exact: true })).toHaveCount(1)
+    await expectPageHealthy(page, issues)
   })
 
   test('tableau de bord, création d’un voyage et sections principales', async ({ page }) => {

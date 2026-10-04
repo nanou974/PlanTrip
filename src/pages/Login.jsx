@@ -54,11 +54,11 @@ export default function Login() {
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
 
-  function onPassword(e) {
+  async function onPassword(e) {
     e.preventDefault()
     setError('')
     try {
-      login({ email, password })
+      await login({ email, password })
       nav('/')
     } catch (err) {
       setError(err.message)

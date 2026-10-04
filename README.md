@@ -52,7 +52,7 @@ npm run preview  # sert dist/ après build
 | --- | --- |
 | `npm run dev` | serveur Vite en développement |
 | `npm run lint` | oxlint sur `src/` (0 erreur / 0 warning attendus) |
-| `npm run test` | `vitest run` — tests unitaires uniquement (17 fichiers, `src/**/*.test.*`) |
+| `npm run test` | `vitest run` — tests unitaires uniquement (20 fichiers, `src/**/*.test.*`) |
 | `npm run test:watch` | mode suivi |
 | `npm run build` | bundle de production dans `dist/` |
 | `npm run preview` | sert le bundle généré |
@@ -97,10 +97,10 @@ src/
 │                  documents, checklist, format
 ├── services/      routing (OSRM, GPX), geocoding (Photon), places (Overpass)
 ├── state/         store.js — persistance localStorage + réactivité React
-├── lib/           storage primitives, auth, tripInfo (véhicules), online (état réseau), connectivity (bandeau hors connexion)
+├── lib/           storage primitives, auth + password (hachage PBKDF2), tripInfo (véhicules), online (état réseau), connectivity (bandeau hors connexion)
 ├── pwa/           service worker (génération + enregistrement) et ses tests
 ├── data/          vehicles.json, questions
-├── pages/         écrans publics, app/ (espace voyageur), app/trip/ (7 onglets), legal/
+├── pages/         écrans publics (dont Faq, Contact, Blog), app/ (espace voyageur), app/trip/ (7 onglets), legal/
 └── App.test.jsx   smoke tests de navigation
 ```
 
@@ -116,10 +116,15 @@ puis `/voyages/:tripId` avec `overview`, `itineraire`, `calendrier`, `budget`, `
 
 ### Comptes locaux
 
-`src/lib/auth.jsx` gère une authentification **entièrement locale** : les comptes, mots de passe
-et codes à usage unique sont stockés dans `localStorage`, aucune requête réseau n'est émise.
-Le mode « Magic Link » affiche le code dans l'interface (en production, il serait envoyé par
-e-mail). `loginWithProvider` simule OAuth le temps d'un branchement Supabase/Firebase.
+`src/lib/auth.jsx` gère une authentification **entièrement locale** : les comptes et les codes
+à usage unique sont stockés dans `localStorage`, aucune requête réseau n'est émise. Le mot de
+passe n'y figure **jamais en clair** : `src/lib/password.js` le dérive en PBKDF2-SHA256
+(210 000 itérations, sel de 16 octets par compte, WebCrypto) ; les comptes créés avant le
+hachage sont migrés automatiquement à l'ouverture. Cette dérivation protège un dump du
+navigateur, pas un appareil déjà ouvert : elle ne remplace pas l'authentification vérifiée
+côté serveur prévue au cahier des charges. Le mode « Magic Link » affiche le code dans
+l'interface (en production, il serait envoyé par e-mail). `loginWithProvider` simule OAuth le
+temps d'un branchement Supabase/Firebase.
 
 ### Modèle de données
 
@@ -211,7 +216,7 @@ trait 2 px, `currentColor`.
 
 ## Tests
 
-Trois suites distinctes : **186 tests unitaires** (17 fichiers, `npm run test`),
+Trois suites distinctes : **202 tests unitaires** (20 fichiers, `npm run test`),
 **39 tests en navigateur** (`npm run test:e2e`, dont **20 tests d'audit accessibilité**
 couvrant 26 pages/états) et le gate `npm run verify` (lint + unitaires + build).
 
@@ -228,6 +233,9 @@ npm run test
 - `src/pwa/service-worker-source.test.js` — script du service worker **exécuté** (précache, repli de navigation, purge, cross-origin jamais intercepté)
 - `src/pwa/pwa.test.js` — manifeste, dimensions des icônes PNG, câblage `index.html` / `main.jsx`, enregistrement du service worker
 - `src/lib/connectivity.test.jsx` — état `online` / `offline` et bandeau explicite
+- `src/lib/password.test.js`, `src/lib/auth.test.jsx` — hachage PBKDF2, inscription/connexion
+  sans mot de passe en clair, migration des anciens comptes, absence de WebCrypto
+- `src/pages/Contact.test.jsx` — lien `mailto:` construit par le formulaire, aucun faux envoi
 - `src/test/network.test.js` — garantit qu'aucun test ne dépend du réseau
 
 Toute la suite est **hermétique** : `src/test/setup.js` remplace `fetch` par un stub qui refuse,
@@ -248,7 +256,9 @@ npm run test:e2e
   **aucun compte ni mot de passe réel n'est stocké dans le dépôt**.
 - `e2e/journey.spec.js` — accueil → préparation → véhicule → calcul → résultat → les 7 sections du voyage
 - `e2e/routes.spec.js` — 13 routes publiques + 404 : pas d'écran blanc, pas de `NaN` / `undefined`, aucune erreur JS
-- `e2e/app.spec.js` — création d'un compte local, profil, export de sauvegarde (téléchargement réel), tableau de bord, onglets
+- `e2e/app.spec.js` — création d'un compte local (mot de passe stocké haché, jamais en
+  clair), profil, export de sauvegarde (téléchargement réel), déconnexion/reconnexion,
+  tableau de bord, onglets
 - `e2e/offline.spec.js` — perte réseau réelle (`context.setOffline(true)`), rechargement hors ligne : SW actif, données locales, bandeau explicite
 - `e2e/a11y.spec.js` — audit axe-core (ci-dessous)
 
@@ -311,11 +321,14 @@ CI à chaque push.
 - `npm audit` complet → 5 alertes *high*, toutes dans l'outillage de build : `braces`
   (épuisement de pile sur motifs imbriqués, GHSA-vfj7-8cjw-p6xm), remonté par
   `micromatch` → `fast-glob` / `chokidar` → `tailwindcss@3.4.x`.
-  Le correctif proposé (`npm audit fix --force`) installe `tailwindcss@4`, rupture majeure
-  (migration du fichier de configuration et des directives `@tailwind`) : **non appliqué**,
-  et documenté ici plutôt que subi silencieusement. Le paquet vulnérable ne s'exécute que
-  lors du build, sur des motifs de fichiers internes au dépôt — jamais dans le navigateur
-  ni dans un service exposé.
+- **Aucune version compatible n'existe.** L'advisory couvre `braces <= 3.0.3`, soit
+  *toutes* les versions publiées : la dernière release (`3.0.3`, septembre 2024) est déjà
+  installée. `npm audit fix` (sans `--force`) ne résout rien ; seule piste proposée
+  `npm audit fix --force` installe `tailwindcss@4`, rupture majeure (migration du fichier
+  de configuration et des directives `@tailwind`) : **non appliqué**, et documenté ici
+  plutôt que subi silencieusement.
+- Le paquet vulnérable ne s'exécute que lors du build, sur des motifs de fichiers internes
+  au dépôt — jamais dans le navigateur ni dans un service exposé.
 
 ## Licence
 

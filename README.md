@@ -204,11 +204,16 @@ npm run build && npm run preview   # ou : python serve.py
 `Pill`, `Progress`, `Field`, `TextInput`, `TextArea`, `SelectInput`, `Toggle`, `Checkbox`,
 `EmptyState`, `ErrorState`, `StatTile`, `Modal`, `Spinner`, `Skeleton`.
 
-Couleurs : actions/sélection → `pt-green`, accents texte → `pt-orange-ink`, aplats →
+Couleurs : actions/sélection → `pt-green`, texte vert sur fond clair → `pt-green-ink`
+(`#2C7857`, variante AA), accents texte → `pt-orange-ink`, aplats →
 `#FFBA3D`. Typographie : Space Grotesk (`font-display`) + Inter. Icônes : SVG ligne 24 px,
 trait 2 px, `currentColor`.
 
 ## Tests
+
+Trois suites distinctes : **186 tests unitaires** (17 fichiers, `npm run test`),
+**39 tests en navigateur** (`npm run test:e2e`, dont **20 tests d'audit accessibilité**
+couvrant 26 pages/états) et le gate `npm run verify` (lint + unitaires + build).
 
 ```bash
 npm run test
@@ -256,7 +261,7 @@ npm run test:a11y
 ```
 
 `@axe-core/playwright`, règles WCAG 2.1 A/AA (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`)
-sur **20 pages/états** : accueil, préparation, résultat, tableau de bord, connexion,
+sur **26 pages/états** (20 tests) : accueil, préparation, résultat, tableau de bord, connexion,
 création de compte, 10 pages publiques (dont le 404), 3 pages applicatives et les 7
 sections de l'espace voyage. Une seule violation fait échouer le test ; le détail
 (nœud + résumé) est écrit dans `test-results/a11y/<page>.json`.
@@ -295,9 +300,9 @@ python serve.py      # http://localhost:8000, repli sur index.html
 Lien d'évitement, focus visible, contrastes AA, navigation clavier complète, libellés de
 formulaires, doubles signaux couleur/libellé. Déclaration détaillée sur `/accessibilite`.
 
-Contrôlé en continu par l'audit automatisé décrit plus haut (`npm run test:a11y`, 20
-pages, règles WCAG 2.1 A/AA, aucune règle désactivée) et exécuté dans la CI à chaque
-push.
+Contrôlé en continu par l'audit automatisé décrit plus haut (`npm run test:a11y`, 26
+pages/états en 20 tests, règles WCAG 2.1 A/AA, aucune règle désactivée) et exécuté dans la
+CI à chaque push.
 
 ## Audit des dépendances
 

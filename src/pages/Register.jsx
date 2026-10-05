@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/authContext.js'
+import AuthSecurityNotice from '../components/AuthSecurityNotice.jsx'
 import { Button, Card, Field, TextInput } from '../design/ui.jsx'
 
 export default function Register() {
@@ -34,6 +35,7 @@ export default function Register() {
         <p className="mt-2 text-center text-pt-neutral/80">Gratuit, sans carte, contrôle total</p>
 
         <Card className="mt-8">
+          <AuthSecurityNotice className="mb-5" />
           <div className="grid gap-3">
             <Button variant="secondary" block onClick={() => onProvider('google')}>
               <span className="flex h-5 w-5 items-center justify-center rounded-full border border-pt-line bg-white text-[11px] font-bold">

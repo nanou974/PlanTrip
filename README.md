@@ -52,7 +52,7 @@ npm run preview  # sert dist/ après build
 | --- | --- |
 | `npm run dev` | serveur Vite en développement |
 | `npm run lint` | oxlint sur `src/` (0 erreur / 0 warning attendus) |
-| `npm run test` | `vitest run` — tests unitaires uniquement (20 fichiers, `src/**/*.test.*`) |
+| `npm run test` | `vitest run` — tests unitaires uniquement (21 fichiers, `src/**/*.test.*`) |
 | `npm run test:watch` | mode suivi |
 | `npm run build` | bundle de production dans `dist/` |
 | `npm run preview` | sert le bundle généré |
@@ -120,7 +120,10 @@ puis `/voyages/:tripId` avec `overview`, `itineraire`, `calendrier`, `budget`, `
 à usage unique sont stockés dans `localStorage`, aucune requête réseau n'est émise. Le mot de
 passe n'y figure **jamais en clair** : `src/lib/password.js` le dérive en PBKDF2-SHA256
 (210 000 itérations, sel de 16 octets par compte, WebCrypto) ; les comptes créés avant le
-hachage sont migrés automatiquement à l'ouverture. Cette dérivation protège un dump du
+hachage sont migrés automatiquement à l'ouverture, et `Mon profil` permet de le changer
+(ancien vérifié, nouveau haché). Ces opérations **exigent un contexte sécurisé** (HTTPS ou
+localhost) : sans `crypto.subtle`, les pages de compte affichent l'obstacle avant toute
+tentative au lieu de simuler une connexion. Cette dérivation protège un dump du
 navigateur, pas un appareil déjà ouvert : elle ne remplace pas l'authentification vérifiée
 côté serveur prévue au cahier des charges. Le mode « Magic Link » affiche le code dans
 l'interface (en production, il serait envoyé par e-mail). `loginWithProvider` simule OAuth le
@@ -216,9 +219,9 @@ trait 2 px, `currentColor`.
 
 ## Tests
 
-Trois suites distinctes : **202 tests unitaires** (20 fichiers, `npm run test`),
-**39 tests en navigateur** (`npm run test:e2e`, dont **20 tests d'audit accessibilité**
-couvrant 26 pages/états) et le gate `npm run verify` (lint + unitaires + build).
+Trois suites distinctes : **208 tests unitaires** (21 fichiers, `npm run test`),
+**40 tests en navigateur** (`npm run test:e2e`, dont **21 tests d'audit accessibilité**
+couvrant 27 pages/états) et le gate `npm run verify` (lint + unitaires + build).
 
 ```bash
 npm run test
@@ -234,7 +237,9 @@ npm run test
 - `src/pwa/pwa.test.js` — manifeste, dimensions des icônes PNG, câblage `index.html` / `main.jsx`, enregistrement du service worker
 - `src/lib/connectivity.test.jsx` — état `online` / `offline` et bandeau explicite
 - `src/lib/password.test.js`, `src/lib/auth.test.jsx` — hachage PBKDF2, inscription/connexion
-  sans mot de passe en clair, migration des anciens comptes, absence de WebCrypto
+  sans mot de passe en clair, migration des anciens comptes, changement de mot de passe,
+  absence de WebCrypto
+- `src/components/AuthSecurityNotice.test.jsx` — bandeau d'honnêteté sur les pages de compte
 - `src/pages/Contact.test.jsx` — lien `mailto:` construit par le formulaire, aucun faux envoi
 - `src/test/network.test.js` — garantit qu'aucun test ne dépend du réseau
 
@@ -257,12 +262,12 @@ npm run test:e2e
 - `e2e/journey.spec.js` — accueil → préparation → véhicule → calcul → résultat → les 7 sections du voyage
 - `e2e/routes.spec.js` — 13 routes publiques + 404 : pas d'écran blanc, pas de `NaN` / `undefined`, aucune erreur JS
 - `e2e/app.spec.js` — création d'un compte local (mot de passe stocké haché, jamais en
-  clair), profil, export de sauvegarde (téléchargement réel), déconnexion/reconnexion,
-  tableau de bord, onglets
+  clair), profil, export de sauvegarde (téléchargement réel), changement de mot de passe,
+  déconnexion/reconnexion, tableau de bord, onglets
 - `e2e/offline.spec.js` — perte réseau réelle (`context.setOffline(true)`), rechargement hors ligne : SW actif, données locales, bandeau explicite
 - `e2e/a11y.spec.js` — audit axe-core (ci-dessous)
 
-39 tests Playwright au total, commandes séparées de la suite unitaire.
+40 tests Playwright au total, commandes séparées de la suite unitaire.
 
 ### Audit accessibilité automatisé
 
@@ -271,9 +276,10 @@ npm run test:a11y
 ```
 
 `@axe-core/playwright`, règles WCAG 2.1 A/AA (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`)
-sur **26 pages/états** (20 tests) : accueil, préparation, résultat, tableau de bord, connexion,
-création de compte, 10 pages publiques (dont le 404), 3 pages applicatives et les 7
-sections de l'espace voyage. Une seule violation fait échouer le test ; le détail
+sur **27 pages/états** (21 tests) : accueil, préparation, résultat, tableau de bord, connexion,
+création de compte, 10 pages publiques (dont le 404), 3 pages applicatives, mon profil
+connecté (formulaire de sécurité) et les 7 sections de l'espace voyage. Une seule violation
+fait échouer le test ; le détail
 (nœud + résumé) est écrit dans `test-results/a11y/<page>.json`.
 
 **Zéro violation**, aucune règle désactivée (ni `disableRules`, ni `exclude`) : les
@@ -311,7 +317,7 @@ Lien d'évitement, focus visible, contrastes AA, navigation clavier complète, l
 formulaires, doubles signaux couleur/libellé. Déclaration détaillée sur `/accessibilite`.
 
 Contrôlé en continu par l'audit automatisé décrit plus haut (`npm run test:a11y`, 26
-pages/états en 20 tests, règles WCAG 2.1 A/AA, aucune règle désactivée) et exécuté dans la
+pages/états en 21 tests, règles WCAG 2.1 A/AA, aucune règle désactivée) et exécuté dans la
 CI à chaque push.
 
 ## Audit des dépendances

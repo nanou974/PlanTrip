@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/authContext.js'
+import AuthSecurityNotice from '../components/AuthSecurityNotice.jsx'
 import { Button, Card, Field, TextInput } from '../design/ui.jsx'
 
 function SocialButtons({ onLogin }) {
@@ -118,6 +119,7 @@ export default function Login() {
           <div className="mt-6">
             {mode === 'password' ? (
               <form onSubmit={onPassword} className="space-y-4">
+                <AuthSecurityNotice />
                 <Field label="Adresse e-mail" id="login-email">
                   <TextInput
                     id="login-email"

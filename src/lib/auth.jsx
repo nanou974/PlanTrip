@@ -110,13 +110,37 @@ export function AuthProvider({children}){
     return u
   }
   function logout(){ setUser(null) }
-  function updateProfile(patch){
+  async function updateProfile(patch){
     if(!user) return
+    await ensureMigrated()
+    const clean={...patch}
+    delete clean.password
+    delete clean.auth
     const users=getUsers()
     const idx=users.findIndex(u=>u.id===user.id)
-    if(idx>=0){ users[idx]={...users[idx],...patch}; saveUsers(users) }
-    setUser(u=> ({...u, ...patch}))
+    if(idx>=0){ users[idx]={...users[idx],...clean}; saveUsers(users) }
+    setUser(u=> ({...u, ...clean}))
+  }
+  async function changePassword({currentPassword,newPassword}){
+    if(!user) throw new Error("Connectez-vous pour changer de mot de passe")
+    if(!newPassword || String(newPassword).length<6) throw new Error("Nouveau mot de passe : 6 caractères minimum")
+    await ensureMigrated()
+    const users=getUsers()
+    const idx=users.findIndex(u=>u.id===user.id)
+    if(idx<0) throw new Error("Compte introuvable sur cet appareil")
+    const u=users[idx]
+    if(u.auth){
+      if(!await verifyPassword(currentPassword,u.auth)) throw new Error("Mot de passe actuel incorrect")
+    }else if(typeof u.password==="string"){
+      if(u.password!==currentPassword) throw new Error("Mot de passe actuel incorrect")
+    }else{
+      throw new Error("Ce compte n'a pas de mot de passe : il passe par un lien magique ou un fournisseur.")
+    }
+    u.auth=await hashPassword(newPassword)
+    delete u.password
+    saveUsers(users)
+    return u
   }
 
-  return <AuthCtx.Provider value={{user, register, login, loginWithProvider, sendMagicLink, verifyOTP, logout, updateProfile, isAuthenticated: !!user}}>{children}</AuthCtx.Provider>
+  return <AuthCtx.Provider value={{user, register, login, loginWithProvider, sendMagicLink, verifyOTP, logout, updateProfile, changePassword, isAuthenticated: !!user}}>{children}</AuthCtx.Provider>
 }

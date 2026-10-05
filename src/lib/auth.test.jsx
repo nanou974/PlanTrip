@@ -116,6 +116,73 @@ describe('comptes locaux', () => {
     expect(auth().user).toBeNull()
   })
 
+  it('change le mot de passe après vérification de l’ancien', async () => {
+    renderAuth()
+    await run(() => auth().register({ email: 'camille@exemple.fr', password: 'Secret-123' }))
+    await run(() => auth().logout())
+
+    await run(() =>
+      expect(auth().changePassword({ currentPassword: 'Secret-123', newPassword: 'Nouveau-456' })).rejects.toThrow(
+        'Connectez-vous',
+      ),
+    )
+
+    await run(() => auth().login({ email: 'camille@exemple.fr', password: 'Secret-123' }))
+    await run(() =>
+      expect(auth().changePassword({ currentPassword: 'faux', newPassword: 'Nouveau-456' })).rejects.toThrow(
+        'Mot de passe actuel incorrect',
+      ),
+    )
+    await run(() =>
+      expect(auth().changePassword({ currentPassword: 'Secret-123', newPassword: 'court' })).rejects.toThrow(
+        '6 caractères minimum',
+      ),
+    )
+    await run(() => auth().changePassword({ currentPassword: 'Secret-123', newPassword: 'Nouveau-456' }))
+
+    expect(rawDb()).not.toContain('Secret-123')
+    expect(rawDb()).not.toContain('Nouveau-456')
+    expect(usersDb()[0].password).toBeUndefined()
+
+    await run(() => auth().logout())
+    await run(() =>
+      expect(auth().login({ email: 'camille@exemple.fr', password: 'Secret-123' })).rejects.toThrow(
+        'Email ou mot de passe incorrect',
+      ),
+    )
+    await run(() => auth().login({ email: 'camille@exemple.fr', password: 'Nouveau-456' }))
+    expect(auth().user?.email).toBe('camille@exemple.fr')
+  })
+
+  it('refuse le changement de mot de passe d’un compte ouvert par lien magique', async () => {
+    renderAuth()
+    let code
+    await run(() => {
+      code = auth().sendMagicLink('magic@exemple.fr')
+    })
+    await run(() => auth().verifyOTP('magic@exemple.fr', code))
+    expect(auth().user?.provider).toBe('magic')
+
+    await run(() =>
+      expect(auth().changePassword({ currentPassword: 'x', newPassword: 'Nouveau-456' })).rejects.toThrow(
+        /pas de mot de passe/,
+      ),
+    )
+  })
+
+  it('met à jour le profil sans jamais réécrire le mot de passe', async () => {
+    renderAuth()
+    await run(() => auth().register({ email: 'camille@exemple.fr', password: 'Secret-123', name: 'Camille' }))
+    await run(() => auth().updateProfile({ name: 'Camille D.', password: 'pirate', auth: 'remplacé' }))
+
+    expect(auth().user?.name).toBe('Camille D.')
+    const [u] = usersDb()
+    expect(u.name).toBe('Camille D.')
+    expect(u.password).toBeUndefined()
+    expect(u.auth.algo).toBe(PASSWORD_ALGO)
+    expect(u.auth.hash).not.toBe('remplacé')
+  })
+
   it('signale WebCrypto manquant à l’inscription', async () => {
     const original = globalThis.crypto
     vi.stubGlobal('crypto', { getRandomValues: original.getRandomValues.bind(original) })

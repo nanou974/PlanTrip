@@ -50,14 +50,26 @@ test.describe('espace applicatif', () => {
     const download = await downloadPromise
     expect(download.suggestedFilename()).toMatch(/^plantrip-sauvegarde-\d{4}-\d{2}-\d{2}\.json$/)
 
-    // Déconnexion puis reconnexion : la vérification du mot de passe est asynchrone
+    // Changement de mot de passe : ancien vérifié, nouveau haché, jamais en clair
+    const nextPassword = `${account.password}-bis`
+    await page.locator('#profile-current-password').fill(account.password)
+    await page.locator('#profile-new-password').fill(nextPassword)
+    await page.getByRole('button', { name: 'Modifier le mot de passe' }).click()
+    await expect(page.getByText('Mot de passe modifié', { exact: true })).toBeVisible()
+
+    const storedAfterChange = await page.evaluate(() => localStorage.getItem('plantrip_users_db') || '[]')
+    expect(storedAfterChange).not.toContain(account.password)
+    expect(storedAfterChange).not.toContain(nextPassword)
+    await expectPageHealthy(page, issues)
+
+    // Déconnexion puis reconnexion avec le nouveau mot de passe (vérification asynchrone)
     await page.locator('#contenu').getByRole('button', { name: 'Se déconnecter', exact: true }).click()
     await page.waitForURL((url) => url.pathname === '/')
     await expect(page.getByRole('button', { name: 'Déconnexion', exact: true })).toHaveCount(0)
 
     await page.goto('/login')
     await page.locator('#login-email').fill(account.email)
-    await page.locator('#login-password').fill(account.password)
+    await page.locator('#login-password').fill(nextPassword)
     await page.getByRole('button', { name: 'Se connecter', exact: true }).click()
     await page.waitForURL((url) => url.pathname === '/')
     await expect(page.getByRole('button', { name: 'Déconnexion', exact: true })).toHaveCount(1)

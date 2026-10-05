@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import App from './App.jsx'
 import { clearTrips, draftToTrip, upsertTrip } from './state/store.js'
@@ -69,6 +69,21 @@ describe('navigation publique', () => {
 
     renderAt('/register')
     expect(screen.getByRole('heading', { name: 'Créer un compte' })).toBeTruthy()
+  })
+
+  it('signale l’absence de WebCrypto sur les pages de compte', () => {
+    const original = globalThis.crypto
+    vi.stubGlobal('crypto', { getRandomValues: original.getRandomValues.bind(original) })
+    try {
+      renderAt('/register')
+      expect(screen.getByRole('alert')).toHaveTextContent(/WebCrypto/)
+      cleanup()
+
+      renderAt('/login')
+      expect(screen.getByRole('alert')).toHaveTextContent(/WebCrypto/)
+    } finally {
+      vi.stubGlobal('crypto', original)
+    }
   })
 
   it('affiche les pages légales', () => {

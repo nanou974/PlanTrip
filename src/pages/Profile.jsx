@@ -19,12 +19,13 @@ import {
   Toggle,
   SelectInput,
   TextInput,
+  Field,
   Pill,
   Modal,
 } from '../design/ui.jsx'
 
 export default function Profile() {
-  const { user, logout, updateProfile } = useAuth()
+  const { user, logout, updateProfile, changePassword } = useAuth()
   const nav = useNavigate()
   const trips = useTrips()
   const library = useLibrary()
@@ -34,6 +35,10 @@ export default function Profile() {
   const [saved, setSaved] = useState(false)
   const [confirmWipe, setConfirmWipe] = useState(false)
   const [notice, setNotice] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordChanged, setPasswordChanged] = useState(false)
   const fileRef = useRef(null)
 
   if (!user) {
@@ -61,10 +66,24 @@ export default function Profile() {
     )
   }
 
-  function save() {
-    updateProfile({ name: name.trim() || user.name })
+  async function save() {
+    await updateProfile({ name: name.trim() || user.name })
     setSaved(true)
     setTimeout(() => setSaved(false), 2200)
+  }
+
+  async function onSubmitPassword(e) {
+    e.preventDefault()
+    setPasswordError('')
+    setPasswordChanged(false)
+    try {
+      await changePassword({ currentPassword, newPassword })
+      setCurrentPassword('')
+      setNewPassword('')
+      setPasswordChanged(true)
+    } catch (err) {
+      setPasswordError(err.message)
+    }
   }
 
   function downloadBackup() {
@@ -159,6 +178,62 @@ export default function Profile() {
             </div>
           </Card>
 
+          <SectionHeader title="Sécurité" />
+          <Card>
+            {user.provider === 'email' ? (
+              <form onSubmit={onSubmitPassword} className="space-y-4">
+                <p className="text-sm text-pt-neutral/80">
+                  Votre mot de passe est conservé haché (PBKDF2-SHA256) dans le stockage local de
+                  cet appareil, jamais en clair.
+                </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Mot de passe actuel" id="profile-current-password" required error={passwordError}>
+                    <TextInput
+                      id="profile-current-password"
+                      type="password"
+                      required
+                      autoComplete="current-password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                    />
+                  </Field>
+                  <Field
+                    label="Nouveau mot de passe"
+                    id="profile-new-password"
+                    required
+                    hint="6 caractères minimum."
+                  >
+                    <TextInput
+                      id="profile-new-password"
+                      type="password"
+                      required
+                      minLength={6}
+                      autoComplete="new-password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                  </Field>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button type="submit" disabled={!currentPassword || newPassword.length < 6}>
+                    Modifier le mot de passe
+                  </Button>
+                  {passwordChanged && (
+                    <span className="text-sm text-pt-green-ink inline-flex items-center gap-1.5">
+                      <Icon name="check-circle" size={16} />
+                      Mot de passe modifié
+                    </span>
+                  )}
+                </div>
+              </form>
+            ) : (
+              <p className="text-sm text-pt-neutral/80">
+                Ce compte n’a pas de mot de passe : il est ouvert par lien magique ou par un
+                fournisseur (Google, Facebook).
+              </p>
+            )}
+          </Card>
+
           <SectionHeader title="Préférences d’affichage" />
           <Card>
             <div className="divide-y divide-pt-line">
@@ -171,12 +246,17 @@ export default function Profile() {
               />
               <div className="flex items-center justify-between gap-4 py-3">
                 <div>
-                  <p className="text-sm font-medium">Unités</p>
-                  <p className="text-xs text-pt-neutral/80 mt-0.5">Distances et poids.</p>
+                  <label htmlFor="pref-units" className="text-sm font-medium">
+                    Unités
+                  </label>
+                  <p id="pref-units-hint" className="text-xs text-pt-neutral/80 mt-0.5">
+                    Distances et poids.
+                  </p>
                 </div>
                 <span className="w-44">
                   <SelectInput
                     id="pref-units"
+                    aria-describedby="pref-units-hint"
                     value={prefs.units}
                     onChange={(e) => setPrefs({ units: e.target.value })}
                   >

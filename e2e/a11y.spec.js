@@ -112,6 +112,21 @@ test.describe('audit accessibilité (axe-core)', () => {
     })
   }
 
+  test('page applicative : mon profil connecté (sécurité)', async ({ page }) => {
+    const stamp = Date.now()
+    await page.goto('/register')
+    await page.locator('#register-name').fill('Voyageur A11y')
+    await page.locator('#register-email').fill(`a11y-${stamp}@plantrip.test`)
+    await page.locator('#register-password').fill(`A11y-${stamp}-Pass`)
+    await page.getByRole('button', { name: 'Créer mon compte' }).click()
+    await page.waitForURL((url) => url.pathname === '/')
+
+    await page.goto('/mon-profil')
+    await expect(page.locator('h1').first()).toBeVisible()
+    await expect(page.locator('#profile-current-password')).toBeVisible()
+    await expectNoViolations(page, 'mon profil connecté')
+  })
+
   test('espace voyage : toutes les sections', async ({ page }) => {
     await mockRemoteServices(page)
     await createTrip(page)

@@ -18,6 +18,13 @@ const MIME = {
   '.map': 'application/json; charset=utf-8',
 }
 
+/** En-têtes communs à toutes les réponses statiques. */
+const BASE_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'X-Frame-Options': 'DENY',
+}
+
 /**
  * Sert `dist/` avec repli SPA (index.html) pour les routes du client.
  * Renvoie false uniquement si le chemin est déjà géré par l'API.
@@ -28,7 +35,7 @@ export function serveStatic(req, res, root) {
   try {
     pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname)
   } catch {
-    res.writeHead(400, { 'X-Content-Type-Options': 'nosniff' })
+    res.writeHead(400, { ...BASE_HEADERS })
     res.end('Bad request')
     return true
   }
@@ -36,7 +43,7 @@ export function serveStatic(req, res, root) {
   const safePath = normalize(pathname).replace(/^(\.\.[/\\])+/, '')
   let filePath = join(root, safePath)
   if (!filePath.startsWith(root + sep) && filePath !== root) {
-    res.writeHead(403, { 'X-Content-Type-Options': 'nosniff' })
+    res.writeHead(403, { ...BASE_HEADERS })
     res.end('Forbidden')
     return true
   }
@@ -47,7 +54,7 @@ export function serveStatic(req, res, root) {
     // Repli SPA : toute route sans extension reçoit l'application.
     if (!extname(safePath)) filePath = join(root, 'index.html')
     if (!existsSync(filePath)) {
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'X-Content-Type-Options': 'nosniff' })
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', ...BASE_HEADERS })
       res.end('Not found')
       return true
     }
@@ -57,8 +64,8 @@ export function serveStatic(req, res, root) {
   const isIndex = filePath.endsWith('index.html') || filePath.endsWith('sw.js')
   const immutable = filePath.includes(`${sep}assets${sep}`)
   res.writeHead(200, {
+    ...BASE_HEADERS,
     'Content-Type': MIME[ext] || 'application/octet-stream',
-    'X-Content-Type-Options': 'nosniff',
     'Cache-Control': isIndex ? 'no-cache' : immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
   })
   if (req.method === 'HEAD') {

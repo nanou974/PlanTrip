@@ -38,10 +38,10 @@ export default defineConfig({
   // pour une route profonde doit résoudre /assets/* quel que soit le chemin).
   base: '/',
   server: {
-    // API : `npm run server` (port 4174) derrière le dev server Vite.
+    // API : `npm run server` derrière le dev server Vite (port API_PORT ou 4174).
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:4174',
+        target: `http://127.0.0.1:${process.env.API_PORT || 4174}`,
         changeOrigin: false,
       },
     },

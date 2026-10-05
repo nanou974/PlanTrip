@@ -65,8 +65,10 @@ export class Store {
       ),
       findUserByEmail: db.prepare('SELECT * FROM users WHERE email = ?'),
       findUserById: db.prepare('SELECT * FROM users WHERE id = ?'),
+      setUserName: db.prepare('UPDATE users SET name = ? WHERE id = ?'),
       setUserPassword: db.prepare('UPDATE users SET algo = ?, salt = ?, hash = ?, params = ? WHERE id = ?'),
       insertSession: db.prepare('INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)'),
+      purgeExpiredSessions: db.prepare('DELETE FROM sessions WHERE expires_at < ?'),
       findSession: db.prepare('SELECT * FROM sessions WHERE token_hash = ?'),
       deleteSession: db.prepare('DELETE FROM sessions WHERE token_hash = ?'),
       deleteSessionsOf: db.prepare('DELETE FROM sessions WHERE user_id = ?'),
@@ -125,8 +127,14 @@ export class Store {
     this.stmts.setUserPassword.run(password.algo, password.salt, password.hash, JSON.stringify(password.params ?? {}), id)
   }
 
+  setUserName(id, name) {
+    this.stmts.setUserName.run(String(name || '').trim(), id)
+  }
+
   createSession(tokenHash, userId, ttlMs) {
     const now = Date.now()
+    // Purge opportuniste : la table ne grandit jamais au-delà des sessions vivantes.
+    this.stmts.purgeExpiredSessions.run(now)
     this.stmts.insertSession.run(tokenHash, userId, now, now + ttlMs)
   }
 

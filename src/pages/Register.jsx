@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/authContext.js'
+import { apiEnabled } from '../lib/api.js'
 import AuthSecurityNotice from '../components/AuthSecurityNotice.jsx'
 import { Button, Card, Field, TextInput } from '../design/ui.jsx'
 
@@ -78,7 +79,11 @@ export default function Register() {
             <Field
               label="Mot de passe"
               id="register-password"
-              hint="6 caractères minimum. Votre compte reste local à cet appareil."
+              hint={
+                apiEnabled()
+                  ? '6 caractères minimum. Vérifié par le serveur, jamais stocké en clair.'
+                  : '6 caractères minimum. Votre compte reste local à cet appareil.'
+              }
             >
               <TextInput
                 id="register-password"

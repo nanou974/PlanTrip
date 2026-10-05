@@ -39,7 +39,7 @@ export function apiEnabled() {
 }
 
 /** Appel JSON avec cookie de session ; `ApiUnreachable` si le serveur est absent. */
-export async function api(path, { method = 'GET', body, timeoutMs = 8000 } = {}) {
+export async function api(path, { method = 'GET', body, timeoutMs = 8000, keepalive = false } = {}) {
   if (API_DISABLED) throw new ApiUnreachable()
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
@@ -48,6 +48,7 @@ export async function api(path, { method = 'GET', body, timeoutMs = 8000 } = {})
     res = await fetch(`/api${path}`, {
       method,
       credentials: 'include',
+      keepalive,
       headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: controller.signal,

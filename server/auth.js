@@ -44,6 +44,29 @@ export function sha256Hex(value) {
   return createHash('sha256').update(String(value)).digest('hex')
 }
 
+/**
+ * Vérifie deux empreintes hex en temps constant : deux hachages SHA-256 ont
+ * toujours la même longueur, ce qui rend `timingSafeEqual` sûr ici.
+ */
+export function equalHex(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length || a.length % 2 !== 0) return false
+  try {
+    return timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'))
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Coût scrypt identique à `verifyPassword` mais sans résultat exploitable :
+ * appelé quand le compte n'existe pas, pour que le temps de réponse ne trahisse
+ * pas l'existence d'un compte (anti-énumération).
+ */
+export async function dummyVerifyPassword(password) {
+  const salt = Buffer.alloc(SALT_BYTES, 9)
+  await scryptAsync(String(password), salt, KEY_BYTES, { N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P })
+}
+
 export function randomToken(bytes = 32) {
   return randomBytes(bytes).toString('hex')
 }
@@ -60,13 +83,23 @@ export function isExpired(row, now = Date.now()) {
 
 /**
  * Limiteur en mémoire : fenêtre glissante simple.
- * `hits(key)` enregistre une fréquente et renvoie false si la limite est dépassée.
+ * `hit(key)` enregistre une fréquence et renvoie false si la limite est dépassée.
+ * Les clés dont toutes les occurrences ont expiré sont purgées (mémoire bornée).
  */
 export function createRateLimiter({ max, windowMs }) {
   const hits = new Map()
+  let lastSweep = 0
+  function sweep(now) {
+    if (now - lastSweep < windowMs) return
+    lastSweep = now
+    for (const [key, list] of hits) {
+      if (!list.some((t) => now - t < windowMs)) hits.delete(key)
+    }
+  }
   return {
     hit(key) {
       const now = Date.now()
+      sweep(now)
       const list = (hits.get(key) || []).filter((t) => now - t < windowMs)
       if (list.length >= max) {
         hits.set(key, list)
@@ -75,6 +108,15 @@ export function createRateLimiter({ max, windowMs }) {
       list.push(now)
       hits.set(key, list)
       return true
+    },
+    /** Annule l'ultimo hit (ex. : l'envoi a échoué, on ne pénalise pas l'utilisateur). */
+    release(key) {
+      const list = hits.get(key)
+      if (list && list.length) {
+        list.pop()
+        if (!list.length) hits.delete(key)
+        else hits.set(key, list)
+      }
     },
     reset(key) {
       hits.delete(key)

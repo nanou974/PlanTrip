@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../lib/authContext.js'
-import { apiEnabled } from '../lib/api.js'
+import { apiEnabled, isUnreachable } from '../lib/api.js'
 import AuthSecurityNotice from '../components/AuthSecurityNotice.jsx'
 import { Button, Card, Field, TextInput } from '../design/ui.jsx'
 
@@ -46,7 +46,7 @@ function ModeSwitch({ mode, onChange }) {
 }
 
 export default function Login() {
-  const { login, loginWithProvider, sendMagicLink, verifyOTP, consumeMagicToken } = useAuth()
+  const { login, loginWithProvider, sendMagicLink, verifyOTP, consumeMagicToken, getMagicSend } = useAuth()
   const nav = useNavigate()
   const [params, setParams] = useSearchParams()
   const [mode, setMode] = useState('password')
@@ -98,18 +98,32 @@ export default function Login() {
     }
   }
 
-  function onSendMagic(e) {
+  async function onSendMagic(e) {
     e.preventDefault()
     setError('')
     setInfo('')
     if (!email) return setError('Email requis')
     const code = sendMagicLink(email)
     setSent(true)
-    setInfo(
-      apiEnabled()
-        ? 'Code envoyé ! Vérifiez votre boîte mail — valable 10 min'
-        : `Code envoyé ! (démo, code = ${code}) — valable 10 min`,
-    )
+    if (!apiEnabled()) {
+      setInfo(`Code envoyé ! (démo, code = ${code}) — valable 10 min`)
+      return
+    }
+    // L'envoi part en arrière-plan : on attend son résultat pour ne pas faire
+    // croire à un envoi raté (hors connexion → code de secours local affiché).
+    setInfo('Envoi du code…')
+    try {
+      await getMagicSend()
+      setInfo('Code envoyé ! Vérifiez votre boîte mail — valable 10 min')
+    } catch (err) {
+      if (isUnreachable(err)) {
+        setInfo(`Hors connexion — code de secours local (démo) : ${code} — valable 10 min`)
+      } else {
+        setSent(false)
+        setOtp('')
+        setError(err.message)
+      }
+    }
   }
 
   async function onVerify(e) {

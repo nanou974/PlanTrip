@@ -76,6 +76,34 @@ test.describe('espace applicatif', () => {
     await expectPageHealthy(page, issues)
   })
 
+  test('mise à jour du profil : nom sauvegardé localement et sur le serveur', async ({ page }) => {
+    const issues = watchPage(page)
+    const account = testAccount()
+
+    await page.goto('/register')
+    await page.locator('#register-name').fill(account.name)
+    await page.locator('#register-email').fill(account.email)
+    await page.locator('#register-password').fill(account.password)
+    await page.getByRole('button', { name: 'Créer mon compte' }).click()
+    await page.waitForURL((url) => url.pathname === '/')
+
+    await page.goto('/mon-profil')
+    const newName = `${account.name} Bis`
+    await page.locator('#profile-name').fill(newName)
+    await page.getByRole('button', { name: 'Enregistrer' }).click()
+    await expect(page.getByText('Profil mis à jour')).toBeVisible()
+
+    // Le serveur (même cookie que la page) doit porter le nouveau nom…
+    const me = await page.request.get('/api/auth/me')
+    expect(me.ok()).toBeTruthy()
+    expect((await me.json()).user.name).toBe(newName)
+
+    // …et le miroir local, après rechargement.
+    await page.reload()
+    await expect(page.locator('#profile-name')).toHaveValue(newName)
+    await expectPageHealthy(page, issues)
+  })
+
   test('tableau de bord, création d’un voyage et sections principales', async ({ page }) => {
     const issues = watchPage(page)
     await mockRemoteServices(page)

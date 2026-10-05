@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/authContext.js'
+import { apiEnabled } from '../lib/api.js'
 import {
   useTrips,
   useLibrary,
@@ -33,6 +34,7 @@ export default function Profile() {
 
   const [name, setName] = useState(user?.name || '')
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [confirmWipe, setConfirmWipe] = useState(false)
   const [notice, setNotice] = useState('')
   const [currentPassword, setCurrentPassword] = useState('')
@@ -44,14 +46,14 @@ export default function Profile() {
   if (!user) {
     return (
       <div>
-        <PageHeader title="Mon profil" subtitle="Connectez-vous pour retrouver vos voyages sur cet appareil." />
+        <PageHeader title="Mon profil" subtitle="Connectez-vous pour gérer votre compte et votre profil." />
         <Card className="max-w-md text-center">
           <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-pt-green-soft text-pt-green-ink mb-4">
             <Icon name="user" size={24} />
           </span>
           <p className="text-sm text-pt-neutral/80 mb-5">
-            PlanTrip fonctionne sans compte. La connexion sert simplement à préserver vos voyages et
-            vos préférences.
+            PlanTrip fonctionne sans compte : vos voyages restent stockés sur cet appareil. La
+            connexion vérifie votre identité et conserve votre profil (nom, e-mail).
           </p>
           <div className="flex flex-col gap-2">
             <Button to="/login" iconRight="arrow-right">
@@ -67,9 +69,14 @@ export default function Profile() {
   }
 
   async function save() {
-    await updateProfile({ name: name.trim() || user.name })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2200)
+    setSaveError('')
+    try {
+      await updateProfile({ name: name.trim() || user.name })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2200)
+    } catch (err) {
+      setSaveError(err.message)
+    }
   }
 
   async function onSubmitPassword(e) {
@@ -146,7 +153,7 @@ export default function Profile() {
                 </p>
               </div>
               <Pill tone="green" className="ml-auto">
-                Local
+                {apiEnabled() ? 'Compte vérifié' : 'Local'}
               </Pill>
             </div>
 
@@ -165,7 +172,7 @@ export default function Profile() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 mt-5">
+            <div className="flex flex-wrap items-center gap-3 mt-5">
               <Button onClick={save} disabled={!name.trim()}>
                 Enregistrer
               </Button>
@@ -175,6 +182,11 @@ export default function Profile() {
                   Profil mis à jour
                 </span>
               )}
+              {saveError && (
+                <p role="alert" className="text-sm text-pt-danger">
+                  {saveError}
+                </p>
+              )}
             </div>
           </Card>
 
@@ -183,8 +195,8 @@ export default function Profile() {
             {user.provider === 'email' ? (
               <form onSubmit={onSubmitPassword} className="space-y-4">
                 <p className="text-sm text-pt-neutral/80">
-                  Votre mot de passe est conservé haché (PBKDF2-SHA256) dans le stockage local de
-                  cet appareil, jamais en clair.
+                  Votre mot de passe est haché (PBKDF2-SHA256) dans le stockage local de cet
+                  appareil pour le contrôle hors ligne, et vérifié par le serveur : jamais en clair.
                 </p>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Mot de passe actuel" id="profile-current-password" required error={passwordError}>

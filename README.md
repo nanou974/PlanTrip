@@ -126,19 +126,22 @@ sert `dist/` et l'API d'authentification :
 
 | Fichier | Rôle |
 | --- | --- |
-| `server/index.js` | point d'entrée (`npm run server`), args `--port` / `--fresh`, variables d'environnement |
-| `server/db.js` | schéma SQLite (`users`, `sessions`, `magic`), formes publiques — jamais les hachages en réponse |
-| `server/auth.js` | mots de passe en **scrypt** (N=16384, sel 16 octets), jetons, limites de débit |
-| `server/mailer.js` | emails Magic Link : `MAIL_MODE=file` (défaut, `.eml` dans `var/mailbox/`) ou `MAIL_MODE=smtp` + `SMTP_URL` (nodemailer) |
-| `server/api.js` | routes JSON sous `/api/auth/*` : `register`, `login`, `password`, `logout`, `magic-link` (+ `verify`, `open`), `me` |
-| `server/static.js` | fichiers `dist/` avec repli SPA, cache `immutable` sur `/assets/` |
+| `server/index.js` | point d'entrée (`npm run server`), args `--port` / `--fresh` (base + boîte aux lettres vierges), variables d'environnement |
+| `server/db.js` | schéma SQLite (`users`, `sessions`, `magic`), formes publiques — jamais les hachages en réponse, purge des sessions expirées |
+| `server/auth.js` | mots de passe en **scrypt** (N=16384, sel 16 octets), jetons, comparaison à temps constant, limites de débit (auto-expirées) |
+| `server/mailer.js` | emails Magic Link : `MAIL_MODE=file` (défaut, `.eml` datés dans `var/mailbox/`) ou `MAIL_MODE=smtp` + `SMTP_URL` (nodemailer) |
+| `server/api.js` | routes JSON sous `/api/auth/*` : `register`, `login`, `password`, `logout`, `magic-link` (+ `verify`, `open`), `me`, `profile` (PATCH) |
+| `server/static.js` | fichiers `dist/` avec repli SPA, cache `immutable` sur `/assets/`, en-têtes de sécurité (`nosniff`, `X-Frame-Options`, `Referrer-Policy`) |
 
 **Session** : cookie `pt_session` (HttpOnly, SameSite=Lax, jeton 32 octets stocké haché SHA-256,
 TTL 7 jours). **Magic Link** : code à 6 chiffres valable 10 minutes (5 tentatives) **et** lien
 `/login?magique=<jeton>` à usage unique — c'est la solution de connexion privilégiée du cahier
-des charges. Envois limités (1 demande / 15 s par adresse, 5 vérifications / 10 min, 10 échecs
-de connexion / 5 min) ; les erreurs sont génériques côté identifiants (pas d'énumération
-d'emails).
+des charges. Envois limités (1 demande / 15 s **par email** et 15 / 10 min **par adresse**,
+5 vérifications / 10 min, 10 échecs de connexion / 5 min et 40 / 5 min par adresse) ; les
+compteurs par adresse ne s'appliquent que si `TRUST_PROXY=1` (derrière un reverse proxy de
+confiance qui pose `X-Forwarded-For`) ; les erreurs sont génériques côté identifiants (pas
+d'énumération d'emails) et les vérifications à durée dépassée retombent sur un scrypt factice
+(pas d'écart de temps révélateur d'un compte existant).
 
 **Côté client** (`src/lib/api.js` + `src/lib/auth.jsx`) : les appels vont d'abord au serveur
 (`credentials: include`), avec **repli local** si celui-ci est injoignable — l'application reste
@@ -150,7 +153,10 @@ simule OAuth le temps d'un branchement réel.
 
 Variables d'environnement du serveur : `HOST`, `PORT` (4174), `DATABASE_PATH`
 (`var/plantrip.db`), `MAIL_MODE` (`file`), `MAILBOX_DIR` (`var/mailbox`), `SMTP_URL`,
-`MAIL_FROM`, `MAGIC_TTL_MIN` (10), `SESSION_TTL_DAYS` (7).
+`MAIL_FROM`, `MAGIC_TTL_MIN` (10), `SESSION_TTL_DAYS` (7), `PUBLIC_URL` (origine absolue des
+liens magiques — sinon l'adresse de la requête, Host sanitisé), `TRUST_PROXY` (`1` pour faire
+confiance à `X-Forwarded-For`), `DIST_DIR` (`dist/`). En développement, le proxy Vite cible
+`API_PORT` (4174 par défaut).
 
 ### Modèle de données
 
@@ -242,8 +248,8 @@ trait 2 px, `currentColor`.
 
 ## Tests
 
-Trois suites distinctes : **217 tests unitaires** (22 fichiers, `npm run test` — dont
-l'API serveur), **43 tests en navigateur** (`npm run test:e2e`, dont **21 tests d'audit
+Trois suites distinctes : **225 tests unitaires** (22 fichiers, `npm run test` — dont
+l'API serveur), **44 tests en navigateur** (`npm run test:e2e`, dont **21 tests d'audit
 accessibilité** couvrant 27 pages/états) et le gate `npm run verify` (lint + unitaires + build).
 
 ```bash
@@ -264,7 +270,9 @@ npm run test
   absence de WebCrypto
 - `server/server.test.js` — API réelle (serveur sur un port libre, boîte aux lettres temporaire) :
   inscription, connexion, sessions, changement de mot de passe, Magic Link (code, lien,
-  réutilisation), limites de débit, absence de hachages dans les réponses
+  réutilisation), profil (`PATCH profile`), origine des liens (`PUBLIC_URL`), en-têtes de
+  sécurité et repli SPA des fichiers statiques, purge des sessions expirées, limites de débit
+  (globales et par adresse avec `TRUST_PROXY`), absence de hachages dans les réponses
 - `src/components/AuthSecurityNotice.test.jsx` — bandeau d'honnêteté sur les pages de compte
 - `src/pages/Contact.test.jsx` — lien `mailto:` construit par le formulaire, aucun faux envoi
 - `src/test/network.test.js` — garantit qu'aucun test ne dépend du réseau
@@ -291,7 +299,8 @@ npm run test:e2e
 - `e2e/journey.spec.js` — accueil → préparation → véhicule → calcul → résultat → les 7 sections du voyage
 - `e2e/routes.spec.js` — 13 routes publiques + 404 : pas d'écran blanc, pas de `NaN` / `undefined`, aucune erreur JS
 - `e2e/app.spec.js` — création d'un compte (mot de passe haché côté serveur **et** en clair
-  jamais présent dans le miroir local), profil, export de sauvegarde (téléchargement réel),
+  jamais présent dans le miroir local), profil (nom sauvegardé sur le serveur **et** dans le
+  miroir local), export de sauvegarde (téléchargement réel),
   changement de mot de passe, déconnexion/reconnexion, tableau de bord, onglets
 - `e2e/auth.spec.js` — Magic Link de bout en bout : le code et le lien sont lus dans les
   fichiers `.eml` du serveur, connexion par code, connexion par `?magique=`, refus d'un lien

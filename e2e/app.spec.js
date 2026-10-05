@@ -38,7 +38,7 @@ test.describe('espace applicatif', () => {
     expect(accountRow.password).toBeUndefined()
     expect(accountRow.auth).toMatchObject({ algo: 'PBKDF2-SHA256' })
 
-    // Profil : compte local, aucun appel réseau
+    // Profil : miroir local du compte, la page ne déclenche aucun appel réseau
     await page.goto('/mon-profil')
     await expect(page.locator('#profile-name')).toHaveValue(account.name)
     await expect(page.locator('#profile-email')).toHaveValue(account.email)

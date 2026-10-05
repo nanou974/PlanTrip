@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../lib/authContext.js'
+import { apiEnabled } from '../lib/api.js'
 import AuthSecurityNotice from '../components/AuthSecurityNotice.jsx'
 import { Button, Card, Field, TextInput } from '../design/ui.jsx'
 
@@ -45,8 +46,9 @@ function ModeSwitch({ mode, onChange }) {
 }
 
 export default function Login() {
-  const { login, loginWithProvider, sendMagicLink, verifyOTP } = useAuth()
+  const { login, loginWithProvider, sendMagicLink, verifyOTP, consumeMagicToken } = useAuth()
   const nav = useNavigate()
+  const [params, setParams] = useSearchParams()
   const [mode, setMode] = useState('password')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -54,6 +56,36 @@ export default function Login() {
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
+
+  // Arrivée par lien magique (`/login?magique=…`) : ouvre la session.
+  const magicToken = params.get('magique')
+  const consumedRef = useRef(null)
+  const consumeRef = useRef(consumeMagicToken)
+  useEffect(() => {
+    consumeRef.current = consumeMagicToken
+  }, [consumeMagicToken])
+  useEffect(() => {
+    if (!magicToken || consumedRef.current === magicToken) return
+    consumedRef.current = magicToken
+    let cancelled = false
+    ;(async () => {
+      try {
+        const ok = await consumeRef.current(magicToken)
+        if (cancelled) return
+        if (ok) {
+          setParams({}, { replace: true })
+          nav('/')
+        } else {
+          setError('Lien de connexion invalide ou déjà utilisé : demandez un nouveau code.')
+        }
+      } catch (err) {
+        if (!cancelled) setError(err.message)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [magicToken, setParams, nav])
 
   async function onPassword(e) {
     e.preventDefault()
@@ -73,14 +105,18 @@ export default function Login() {
     if (!email) return setError('Email requis')
     const code = sendMagicLink(email)
     setSent(true)
-    setInfo(`Code envoyé ! (démo, code = ${code}) — valable 10 min`)
+    setInfo(
+      apiEnabled()
+        ? 'Code envoyé ! Vérifiez votre boîte mail — valable 10 min'
+        : `Code envoyé ! (démo, code = ${code}) — valable 10 min`,
+    )
   }
 
-  function onVerify(e) {
+  async function onVerify(e) {
     e.preventDefault()
     setError('')
     try {
-      verifyOTP(email, otp)
+      await verifyOTP(email, otp)
       nav('/')
     } catch (err) {
       setError(err.message)
@@ -158,7 +194,11 @@ export default function Login() {
                     <Field
                       label="Adresse e-mail"
                       id="login-magic-email"
-                      hint="Vous recevrez un code à 6 chiffres (démo : affiché à l'envoi, en prod envoyé par email)."
+                      hint={
+                        apiEnabled()
+                          ? 'Vous recevrez un code à 6 chiffres par email, valable 10 minutes.'
+                          : "Vous recevrez un code à 6 chiffres (démo : affiché à l'envoi, en prod envoyé par email)."
+                      }
                     >
                       <TextInput
                         id="login-magic-email"
@@ -234,8 +274,10 @@ export default function Login() {
         </Card>
 
         <p className="mt-4 text-center text-xs text-pt-neutral/75">
-          Auth locale (localStorage). Pour Google/Facebook réels, configurez un fournisseur dans{' '}
-          <code className="text-pt-neutral/80">src/lib/auth.jsx</code>.
+          {apiEnabled()
+            ? 'Compte vérifié par le serveur PlanTrip ; vos voyages restent stockés sur cet appareil.'
+            : 'Auth locale (localStorage). Pour Google/Facebook réels, configurez un fournisseur dans '}
+          {!apiEnabled() && <code className="text-pt-neutral/80">src/lib/auth.jsx</code>}
         </p>
       </div>
     </section>

@@ -2,7 +2,7 @@
 
 > Itinéraire, budget, lieux, documents et checklists réunis dans un seul espace — adapté à votre véhicule et à vos envies. Vos voyages restent consultables hors connexion.
 
-PlanTrip est une application web de préparation de voyage en français. Tout est calculé et conservé **localement** dans le navigateur : aucun compte serveur, aucune base de données distante, aucun traceur publicitaire.
+PlanTrip est une application web de préparation de voyage en français. Les voyages sont calculés et conservés **localement** dans le navigateur : aucune donnée de voyage sur un serveur, aucun traceur publicitaire. L'**authentification** (comptes, mots de passe, Magic Link) passe, elle, par le serveur fourni avec l'application — voir [Serveur et authentification](#serveur-et-authentification).
 
 - Cahier des charges : `PlanTrip-main/PlanTrip-main/README.md` *(référence locale, hors dépôt Git)*
 - Chartes graphiques : `PlanTrip-main/` *(référence locale, hors dépôt Git)* — planches sources de `src/design/`
@@ -40,23 +40,25 @@ par `.gitignore` pour ne pas alourdir le dépôt, et sont donc absents d'un clon
 Prérequis : **Node.js 24 (LTS)** et npm. Le lockfile `package-lock.json` fait foi.
 
 ```bash
-npm ci           # installation reproductible depuis le lockfile
-npm run dev      # serveur de développement
-npm run verify   # lint + tests + build — qualité complète
-npm run preview  # sert dist/ après build
+npm ci              # installation reproductible depuis le lockfile
+npm run dev         # développement : Vite (proxy /api sur le serveur local)
+npm run server      # serveur PlanTrip : dist/ + API auth (port 4174)
+npm run verify      # lint + tests + build — qualité complète
+npm run build && npm start   # production : build puis serveur (port 4174)
 ```
 
 ## Scripts
 
 | Commande | Effet |
 | --- | --- |
-| `npm run dev` | serveur Vite en développement |
+| `npm run dev` | serveur Vite en développement (proxy `/api` → `127.0.0.1:4174`) |
 | `npm run lint` | oxlint sur `src/` (0 erreur / 0 warning attendus) |
-| `npm run test` | `vitest run` — tests unitaires uniquement (21 fichiers, `src/**/*.test.*`) |
+| `npm run test` | `vitest run` — tests unitaires uniquement (22 fichiers, `src/**/*.test.*` + `server/*.test.js`) |
 | `npm run test:watch` | mode suivi |
 | `npm run build` | bundle de production dans `dist/` |
-| `npm run preview` | sert le bundle généré |
-| `npm run test:e2e` | Playwright contre le build de production (parcours, routes, compte, hors connexion, accessibilité) |
+| `npm run server` / `npm start` | serveur Node (`server/index.js`) : fichiers `dist/` + API `/api/*` |
+| `npm run preview` | aperçu statique Vite (sans API) |
+| `npm run test:e2e` | Playwright contre le build servi par le serveur PlanTrip (parcours, routes, compte, Magic Link, hors connexion, accessibilité) |
 | `npm run test:a11y` | audit axe-core seul (`e2e/a11y.spec.js`) |
 | `npm run verify` | `lint && test && build` (gate de qualité) |
 
@@ -89,6 +91,9 @@ donc aucune dépendance à un quota externe.
 ## Architecture
 
 ```
+server/          serveur Node : index.js (entrée), api.js (auth REST),
+                 db.js (node:sqlite), auth.js (scrypt), mailer.js,
+                 static.js (dist/ + repli SPA)
 src/
 ├── design/        tokens, Icon.jsx (~90 icônes), ui.jsx (design system)
 ├── layout/        PublicLayout, MarketingHeader, Footer, AppShell, BottomNav
@@ -97,7 +102,7 @@ src/
 │                  documents, checklist, format
 ├── services/      routing (OSRM, GPX), geocoding (Photon), places (Overpass)
 ├── state/         store.js — persistance localStorage + réactivité React
-├── lib/           storage primitives, auth + password (hachage PBKDF2), tripInfo (véhicules), online (état réseau), connectivity (bandeau hors connexion)
+├── lib/           storage primitives, api (client REST + repli local), auth + password (hachage PBKDF2), tripInfo (véhicules), online (état réseau), connectivity (bandeau hors connexion)
 ├── pwa/           service worker (génération + enregistrement) et ses tests
 ├── data/          vehicles.json, questions
 ├── pages/         écrans publics (dont Faq, Contact, Blog), app/ (espace voyageur), app/trip/ (7 onglets), legal/
@@ -114,20 +119,38 @@ src/
 puis `/voyages/:tripId` avec `overview`, `itineraire`, `calendrier`, `budget`, `lieux`,
 `documents`, `organisation`.
 
-### Comptes locaux
+### Serveur et authentification
 
-`src/lib/auth.jsx` gère une authentification **entièrement locale** : les comptes et les codes
-à usage unique sont stockés dans `localStorage`, aucune requête réseau n'est émise. Le mot de
-passe n'y figure **jamais en clair** : `src/lib/password.js` le dérive en PBKDF2-SHA256
-(210 000 itérations, sel de 16 octets par compte, WebCrypto) ; les comptes créés avant le
-hachage sont migrés automatiquement à l'ouverture, et `Mon profil` permet de le changer
-(ancien vérifié, nouveau haché). Ces opérations **exigent un contexte sécurisé** (HTTPS ou
-localhost) : sans `crypto.subtle`, les pages de compte affichent l'obstacle avant toute
-tentative au lieu de simuler une connexion. Cette dérivation protège un dump du
-navigateur, pas un appareil déjà ouvert : elle ne remplace pas l'authentification vérifiée
-côté serveur prévue au cahier des charges. Le mode « Magic Link » affiche le code dans
-l'interface (en production, il serait envoyé par e-mail). `loginWithProvider` simule OAuth le
-temps d'un branchement Supabase/Firebase.
+`server/` est un **serveur Node sans dépendance native** (HTTP + `node:sqlite` de Node 24) qui
+sert `dist/` et l'API d'authentification :
+
+| Fichier | Rôle |
+| --- | --- |
+| `server/index.js` | point d'entrée (`npm run server`), args `--port` / `--fresh`, variables d'environnement |
+| `server/db.js` | schéma SQLite (`users`, `sessions`, `magic`), formes publiques — jamais les hachages en réponse |
+| `server/auth.js` | mots de passe en **scrypt** (N=16384, sel 16 octets), jetons, limites de débit |
+| `server/mailer.js` | emails Magic Link : `MAIL_MODE=file` (défaut, `.eml` dans `var/mailbox/`) ou `MAIL_MODE=smtp` + `SMTP_URL` (nodemailer) |
+| `server/api.js` | routes JSON sous `/api/auth/*` : `register`, `login`, `password`, `logout`, `magic-link` (+ `verify`, `open`), `me` |
+| `server/static.js` | fichiers `dist/` avec repli SPA, cache `immutable` sur `/assets/` |
+
+**Session** : cookie `pt_session` (HttpOnly, SameSite=Lax, jeton 32 octets stocké haché SHA-256,
+TTL 7 jours). **Magic Link** : code à 6 chiffres valable 10 minutes (5 tentatives) **et** lien
+`/login?magique=<jeton>` à usage unique — c'est la solution de connexion privilégiée du cahier
+des charges. Envois limités (1 demande / 15 s par adresse, 5 vérifications / 10 min, 10 échecs
+de connexion / 5 min) ; les erreurs sont génériques côté identifiants (pas d'énumération
+d'emails).
+
+**Côté client** (`src/lib/api.js` + `src/lib/auth.jsx`) : les appels vont d'abord au serveur
+(`credentials: include`), avec **repli local** si celui-ci est injoignable — l'application reste
+utilisable hors connexion. Le miroir `localStorage.plantrip_users_db` (hachage PBKDF2 local,
+jamais en clair) est conservé après inscription et changement de mot de passe : c'est lui qui
+sert de vérification hors ligne et de source de vérité pour les données de l'appareil. En
+`MODE=test`, l'API est coupée : les tests unitaires exercent le repli local. `loginWithProvider`
+simule OAuth le temps d'un branchement réel.
+
+Variables d'environnement du serveur : `HOST`, `PORT` (4174), `DATABASE_PATH`
+(`var/plantrip.db`), `MAIL_MODE` (`file`), `MAILBOX_DIR` (`var/mailbox`), `SMTP_URL`,
+`MAIL_FROM`, `MAGIC_TTL_MIN` (10), `SESSION_TTL_DAYS` (7).
 
 ### Modèle de données
 
@@ -219,9 +242,9 @@ trait 2 px, `currentColor`.
 
 ## Tests
 
-Trois suites distinctes : **208 tests unitaires** (21 fichiers, `npm run test`),
-**40 tests en navigateur** (`npm run test:e2e`, dont **21 tests d'audit accessibilité**
-couvrant 27 pages/états) et le gate `npm run verify` (lint + unitaires + build).
+Trois suites distinctes : **217 tests unitaires** (22 fichiers, `npm run test` — dont
+l'API serveur), **43 tests en navigateur** (`npm run test:e2e`, dont **21 tests d'audit
+accessibilité** couvrant 27 pages/états) et le gate `npm run verify` (lint + unitaires + build).
 
 ```bash
 npm run test
@@ -239,12 +262,16 @@ npm run test
 - `src/lib/password.test.js`, `src/lib/auth.test.jsx` — hachage PBKDF2, inscription/connexion
   sans mot de passe en clair, migration des anciens comptes, changement de mot de passe,
   absence de WebCrypto
+- `server/server.test.js` — API réelle (serveur sur un port libre, boîte aux lettres temporaire) :
+  inscription, connexion, sessions, changement de mot de passe, Magic Link (code, lien,
+  réutilisation), limites de débit, absence de hachages dans les réponses
 - `src/components/AuthSecurityNotice.test.jsx` — bandeau d'honnêteté sur les pages de compte
 - `src/pages/Contact.test.jsx` — lien `mailto:` construit par le formulaire, aucun faux envoi
 - `src/test/network.test.js` — garantit qu'aucun test ne dépend du réseau
 
 Toute la suite est **hermétique** : `src/test/setup.js` remplace `fetch` par un stub qui refuse,
 ce qui rend la CI déterministe (pas d'appel à OSRM, Photon ou Overpass pendant les tests).
+`server/server.test.js` restaure le `fetch` natif : il ne parle qu'au serveur local qu'il lance.
 
 ### Tests de bout en bout (Playwright)
 
@@ -254,20 +281,25 @@ npm run test:e2e
 ```
 
 - `playwright.config.js` — `testDir: e2e`, URL de base `http://127.0.0.1:4173`, Chromium,
-  `webServer` = `npm run build && npm run preview` : les parcours s'exécutent sur le
-  **bundle de production** (service worker compris). Trace + captures en cas d'échec.
+  `webServer` = `npm run build && node server/index.js --fresh --port 4173` : les parcours
+  s'exécutent sur le **bundle de production servi par le serveur PlanTrip** (API
+  d'authentification et service worker compris), base vierge à chaque session.
+  Trace + captures en cas d'échec.
 - `e2e/helpers.js` — mocks Photon/OSRM/Overpass/tuiles OSM (déterminisme), surveillance
   des erreurs JS/console, `createTrip()` : le voyage est créé dans le contexte du test,
   **aucun compte ni mot de passe réel n'est stocké dans le dépôt**.
 - `e2e/journey.spec.js` — accueil → préparation → véhicule → calcul → résultat → les 7 sections du voyage
 - `e2e/routes.spec.js` — 13 routes publiques + 404 : pas d'écran blanc, pas de `NaN` / `undefined`, aucune erreur JS
-- `e2e/app.spec.js` — création d'un compte local (mot de passe stocké haché, jamais en
-  clair), profil, export de sauvegarde (téléchargement réel), changement de mot de passe,
-  déconnexion/reconnexion, tableau de bord, onglets
+- `e2e/app.spec.js` — création d'un compte (mot de passe haché côté serveur **et** en clair
+  jamais présent dans le miroir local), profil, export de sauvegarde (téléchargement réel),
+  changement de mot de passe, déconnexion/reconnexion, tableau de bord, onglets
+- `e2e/auth.spec.js` — Magic Link de bout en bout : le code et le lien sont lus dans les
+  fichiers `.eml` du serveur, connexion par code, connexion par `?magique=`, refus d'un lien
+  déjà consommé
 - `e2e/offline.spec.js` — perte réseau réelle (`context.setOffline(true)`), rechargement hors ligne : SW actif, données locales, bandeau explicite
 - `e2e/a11y.spec.js` — audit axe-core (ci-dessous)
 
-40 tests Playwright au total, commandes séparées de la suite unitaire.
+43 tests Playwright au total, commandes séparées de la suite unitaire.
 
 ### Audit accessibilité automatisé
 
@@ -303,12 +335,19 @@ libellés, contraste, titres, boutons/liens, focus, ARIA) sont satisfaites.
 
 ## Déploiement local
 
-Le bundle `dist/` peut être servi par n'importe quel serveur statique. Pour tester le
-routage SPA (URL profondes comme `/voyages/abc/lieux`) :
+Le serveur fourni (`server/index.js`) sert `dist/` **avec repli SPA** (URL profondes comme
+`/voyages/abc/lieux`) et l'API d'authentification :
 
 ```bash
 npm run build
-python serve.py      # http://localhost:8000, repli sur index.html
+npm start          # http://127.0.0.1:4174 (HOST / PORT / MAIL_MODE : voir ci-dessus)
+```
+
+Pour tester le routage SPA sans API, n'importe quel serveur statique convient :
+
+```bash
+npm run preview    # Vite, port 4173
+python serve.py    # http://localhost:8000, repli sur index.html
 ```
 
 ## Accessibilité
@@ -323,7 +362,7 @@ CI à chaque push.
 ## Audit des dépendances
 
 - `npm audit --omit=dev` → **0 vulnérabilité** : aucune dépendance de production
-  (`react`, `react-dom`, `react-router-dom`, `leaflet`) n'est concernée.
+  (`react`, `react-dom`, `react-router-dom`, `leaflet`, `nodemailer`) n'est concernée.
 - `npm audit` complet → **0 vulnérabilité** (octobre 2026). Les 5 alertes *high*
   historiques venaient de `braces` (GHSA-vfj7-8cjw-p6xm, épuisement de pile sur motifs
   imbriqués), remonté par `micromatch` → `fast-glob` / `chokidar` → `tailwindcss@3.4.x` :

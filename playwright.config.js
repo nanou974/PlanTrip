@@ -4,9 +4,11 @@ const PORT = 4173
 const BASE_URL = `http://127.0.0.1:${PORT}`
 
 /**
- * Tests E2E contre le build de production servi par `vite preview`.
- * Le service worker (mode hors connexion) n'existe qu'en production : le serveur
- * de test est donc celui du build, pas `vite dev`.
+ * Tests E2E contre le build de production servi par le serveur PlanTrip
+ * (`server/index.js` : fichiers statiques + API d'authentification).
+ * Le service worker (mode hors connexion) n'existe qu'en production : le
+ * serveur de test sert donc le build, pas `vite dev`. `--fresh` repart d'une
+ * base vierge à chaque session ; les comptes e2e sont horodatés.
  */
 export default defineConfig({
   testDir: './e2e',
@@ -28,8 +30,8 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 4173 --strictPort',
-    url: BASE_URL,
+    command: 'npm run build && node server/index.js --fresh --port 4173',
+    url: `${BASE_URL}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
   },

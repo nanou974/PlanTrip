@@ -16,6 +16,9 @@ dist-ssr/
 coverage/
 *.tsbuildinfo
 
+# Serveur local (base SQLite + boîte aux lettres .eml en mode fichier)
+var/
+
 # Playwright (rapports, traces, captures)
 playwright-report/
 test-results/

@@ -312,8 +312,9 @@ export default function Profile() {
           <Card className="bg-pt-cream border-transparent">
             <p className="text-sm font-semibold mb-1.5">Hors connexion</p>
             <p className="text-sm text-pt-neutral/80 leading-relaxed">
-              Vos voyages restent disponibles sans réseau. Rien n’est envoyé sur un serveur : si vous
-              videz le stockage de votre navigateur, ces données disparaissent — pensez à exporter.
+              Vos voyages restent disponibles sans réseau. Aucune donnée de voyage n’est envoyée sur un
+              serveur : si vous videz le stockage de votre navigateur, ces données disparaissent —
+              pensez à exporter.
             </p>
           </Card>
         </div>

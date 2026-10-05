@@ -37,12 +37,21 @@ export default defineConfig({
   // Base absolue : indispensable au repli hors connexion (l'index.html servi
   // pour une route profonde doit résoudre /assets/* quel que soit le chemin).
   base: '/',
+  server: {
+    // API : `npm run server` (port 4174) derrière le dev server Vite.
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:4174',
+        changeOrigin: false,
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.js',
     // Unitaires uniquement : les specs Playwright (e2e/) ont leur propre runner.
-    include: ['src/**/*.test.{js,jsx}'],
+    include: ['src/**/*.test.{js,jsx}', 'server/**/*.test.js'],
     css: false,
     restoreMocks: true,
     // jsdom + React : la première exécution est coûteuse, surtout en parallèle.

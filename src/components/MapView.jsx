@@ -123,7 +123,7 @@ export default function MapView({
       aria-label="Carte de l’itinéraire"
     >
       {!online && (
-        <div className="absolute left-2 bottom-2 z-[500]">
+        <div className="absolute left-2 bottom-2 z-500">
           <Pill tone="orange" icon="info">
             Fond de carte hors connexion
           </Pill>

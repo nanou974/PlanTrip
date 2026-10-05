@@ -34,7 +34,7 @@ function ModeSwitch({ mode, onChange }) {
           aria-selected={mode === item.id}
           onClick={() => onChange(item.id)}
           className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-            mode === item.id ? 'bg-white shadow-sm text-pt-neutral' : 'text-pt-neutral/75 hover:text-pt-neutral'
+            mode === item.id ? 'bg-white shadow-xs text-pt-neutral' : 'text-pt-neutral/75 hover:text-pt-neutral'
           }`}
         >
           {item.label}

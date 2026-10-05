@@ -51,10 +51,10 @@ function CityInput({label, value, onChange, error, id}){
         onChange={e=>search(e.target.value)}
         placeholder={label==="Départ"?"D'où partez-vous ?":"Où allez-vous ?"}
         aria-label={label}
-        className={`w-full mt-1 px-4 py-3 bg-pt-cream border rounded-xl focus:outline-none focus:ring-2 ${error?"border-red-400 focus:ring-red-200":"border-pt-line focus:ring-pt-green/20"}`}
+        className={`w-full mt-1 px-4 py-3 bg-pt-cream border rounded-xl focus:outline-hidden focus:ring-2 ${error?"border-red-400 focus:ring-red-200":"border-pt-line focus:ring-pt-green/20"}`}
       />
       {res.length>0 && (
-        <div className="mt-1 bg-white border rounded-xl shadow overflow-hidden max-h-48 overflow-y-auto">
+        <div className="mt-1 bg-white border rounded-xl shadow-sm overflow-hidden max-h-48 overflow-y-auto">
           {res.map(r=> (
             <button key={r.name} onClick={()=>{ onChange(r); setRes([]); setSearchError("")}} className="w-full text-left px-4 py-2 hover:bg-pt-green-soft text-sm">{r.name}</button>
           ))}
@@ -229,7 +229,7 @@ export default function PreparerVoyage(){
             <div className="bg-pt-green-soft border border-pt-green/15 p-4 rounded-xl text-sm text-pt-neutral/70 mb-3">Le budget est la <strong>contrainte principale</strong>. Le moteur le répartit entre transport, hébergement, restauration, activités.</div>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-pt-neutral/70">€</span>
-              <input aria-label="Budget maximal en euros" type="number" min="1" value={budget} onChange={e=> setBudget(e.target.value)} placeholder="Budget maximal en euros" className={`w-full pl-10 pr-4 py-4 bg-pt-cream border rounded-xl focus:outline-none focus:ring-2 ${errors.budget?"border-red-400":"border-pt-line focus:ring-pt-green/20"}`} />
+              <input aria-label="Budget maximal en euros" type="number" min="1" value={budget} onChange={e=> setBudget(e.target.value)} placeholder="Budget maximal en euros" className={`w-full pl-10 pr-4 py-4 bg-pt-cream border rounded-xl focus:outline-hidden focus:ring-2 ${errors.budget?"border-red-400":"border-pt-line focus:ring-pt-green/20"}`} />
             </div>
             {errors.budget && <p className="text-xs text-pt-danger mt-1">{errors.budget}</p>}
           </div>
@@ -274,7 +274,7 @@ export default function PreparerVoyage(){
           </div>
 
           <div className="text-center pt-4">
-            <button onClick={handleSubmit} className="px-10 py-4 bg-pt-green text-white font-semibold rounded-xl hover:bg-[#24634A] hover:shadow-xl transition-all">Construire mon voyage →</button>
+            <button onClick={handleSubmit} className="px-10 py-4 bg-pt-green text-white font-semibold rounded-xl hover:bg-pt-green-dark hover:shadow-xl transition-all">Construire mon voyage →</button>
           </div>
         </div>
       </section>

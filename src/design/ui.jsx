@@ -18,9 +18,9 @@ const BTN_SIZE = {
 }
 
 const BTN_VARIANT = {
-  primary: 'bg-pt-green text-white hover:bg-pt-green-dark shadow-sm',
+  primary: 'bg-pt-green text-white hover:bg-pt-green-dark shadow-xs',
   secondary: 'bg-white text-pt-neutral border border-pt-line hover:border-pt-green hover:text-pt-green-ink',
-  accent: 'bg-pt-orange text-pt-neutral hover:brightness-95 shadow-sm',
+  accent: 'bg-pt-orange text-pt-neutral hover:brightness-95 shadow-xs',
   ghost: 'text-pt-neutral/70 hover:bg-pt-neutral/5 hover:text-pt-neutral',
   danger: 'bg-pt-danger-soft text-pt-danger hover:bg-pt-danger hover:text-white',
 }
@@ -297,7 +297,7 @@ export function Toggle({ checked, onChange, label, hint, id }) {
           className="peer sr-only"
         />
         <span className="block h-6 w-11 rounded-full bg-pt-light border border-pt-line transition-colors peer-checked:bg-pt-green peer-checked:border-pt-green peer-focus-visible:ring-2 peer-focus-visible:ring-pt-green/40" />
-        <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+        <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5" />
       </span>
     </label>
   )
@@ -315,7 +315,7 @@ export function Checkbox({ checked, onChange, label, id, disabled }) {
           onChange={(e) => onChange(e.target.checked)}
           className="peer sr-only"
         />
-        <span className="flex h-5 w-5 items-center justify-center rounded-md border border-pt-line bg-white transition-colors peer-checked:border-pt-green peer-checked:bg-pt-green peer-checked:[&_svg]:opacity-100 peer-focus-visible:ring-2 peer-focus-visible:ring-pt-green/40">
+        <span className="flex h-5 w-5 items-center justify-center rounded-md border border-pt-line bg-white transition-colors peer-checked:border-pt-green peer-checked:bg-pt-green [&_svg]:peer-checked:opacity-100 peer-focus-visible:ring-2 peer-focus-visible:ring-pt-green/40">
           <Icon name="check" size={13} strokeWidth={3} className="text-white opacity-0 transition-opacity" />
         </span>
       </span>
@@ -457,7 +457,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }) {
   const width = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl' }[size]
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-6">
+    <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-6">
       <div
         className="absolute inset-0 bg-pt-neutral/40 backdrop-blur-[2px] animate-fade-up"
         onClick={onClose}
@@ -470,7 +470,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }) {
         aria-label={title}
         tabIndex={-1}
         className={cx(
-          'relative w-full bg-white shadow-pop rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto scrollbar-thin animate-fade-up outline-none',
+          'relative w-full bg-white shadow-pop rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto scrollbar-thin animate-fade-up outline-hidden',
           width,
         )}
       >

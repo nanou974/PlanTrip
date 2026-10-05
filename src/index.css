@@ -1,6 +1,267 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme {
+  --color-pt-orange: #ffba3d;
+  --color-pt-orange-ink: #a85400;
+  --color-pt-orange-soft: #fff4df;
+  --color-pt-green: #2e7d5b;
+  --color-pt-green-ink: #2c7857;
+  --color-pt-green-dark: #24634a;
+  --color-pt-green-soft: #e8f1ed;
+  --color-pt-sage: #6faba1;
+  --color-pt-blue: #1e3a5f;
+  --color-pt-neutral: #2b2f33;
+  --color-pt-cream: #f5f2ed;
+  --color-pt-light: #f1f3f4;
+  --color-pt-line: #e4e1da;
+  --color-pt-danger: #b4341f;
+  --color-pt-danger-soft: #fbece8;
+
+  --font-display: 'Space Grotesk', Inter, system-ui, sans-serif;
+  --font-sans: Inter, system-ui, sans-serif;
+
+  /*
+    Tailwind v4 exprime les line-height des tailles de texte comme des ratios
+    sans unité (ex. --text-sm--line-height: calc(1.25 / 0.875)). La valeur
+    héritée par les enfants devient alors un ratio recalculé sur leur propre
+    corps de texte, alors que Tailwind v3 héritait une hauteur absolue.
+    On rétablit les valeurs absolues v3 pour conserver les rendus validés.
+  */
+  --text-xs--line-height: 1rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl--line-height: 2.25rem;
+  --text-4xl--line-height: 2.5rem;
+
+  --text-h1: 2rem;
+  --text-h1--line-height: 2.5rem;
+  --text-h1--font-weight: 700;
+  --text-h2: 1.5rem;
+  --text-h2--line-height: 2rem;
+  --text-h2--font-weight: 600;
+  --text-h3: 1.125rem;
+  --text-h3--line-height: 1.625rem;
+  --text-h3--font-weight: 500;
+
+  --shadow-card:
+    0 1px 2px rgba(43, 47, 51, 0.04), 0 8px 24px rgba(43, 47, 51, 0.06);
+  --shadow-pop: 0 12px 40px rgba(43, 47, 51, 0.14);
+
+  --animate-fade-up: fade-up 0.4s ease both;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+
+  /*
+    Le préflight de Tailwind v4 applique `padding: 0` à tous les éléments, ce
+    qui efface deux styles par défaut du navigateur conservés par Tailwind v3 :
+    le padding interne des champs date/time et le padding des <option> de la
+    liste déroulante. On les rétablit pour garder les hauteurs validées.
+  */
+  input[type='date']::-webkit-datetime-edit,
+  input[type='time']::-webkit-datetime-edit,
+  input[type='datetime-local']::-webkit-datetime-edit {
+    padding-block: 1px;
+  }
+
+  option {
+    padding: 0 2px 1px;
+  }
+}
+
+@layer utilities {
+  /*
+    Tailwind v4 régénère space-y-* de deux façons différentes :
+
+    1. `:where(.space-y-N > :not(:last-child))` (spécificité 0) impose une
+       marge basse de N à tous les enfants, y compris le premier, alors que
+       les marges propres mb-* (spécificité 0-1-0) priment sur elle : les
+       écarts varient selon les marges propres, et l'empilement se double
+       quand deux marges ne s'annulent pas (enfants inline-flex, cellules de
+       grille...).
+    2. La règle v3 `.space-y-N > :not([hidden]) ~ :not([hidden])`
+       (spécificité 0-3-0) imposait margin-top: N **et margin-bottom: 0** à
+       tous les enfants sauf le premier, écrasant les marges propres.
+
+    Les règles ci-dessous rétablissent la sémantique v3 validée : marge haute
+    N et marge basse 0 prioritaires sur les marges propres. Le sélecteur
+    :where(...) (spécificité 0) neutralise la marge basse que v4 impose au
+    premier enfant, sans jamais écraser une marge propre mb-* (spécificité
+    0-1-0), comme en v3.
+  */
+  :where(.space-y-1 > :not(:last-child)),
+  :where(.space-y-1\.5 > :not(:last-child)),
+  :where(.space-y-2 > :not(:last-child)),
+  :where(.space-y-2\.5 > :not(:last-child)),
+  :where(.space-y-3 > :not(:last-child)),
+  :where(.space-y-4 > :not(:last-child)),
+  :where(.space-y-5 > :not(:last-child)),
+  :where(.space-y-6 > :not(:last-child)),
+  :where(.space-y-8 > :not(:last-child)),
+  :where(.space-y-12 > :not(:last-child)),
+  :where(.sm\:space-y-6 > :not(:last-child)) {
+    margin-block-end: 0;
+  }
+
+  .space-y-1 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.25rem;
+    margin-bottom: 0;
+  }
+  .space-y-1\.5 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.375rem;
+    margin-bottom: 0;
+  }
+  .space-y-2 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.5rem;
+    margin-bottom: 0;
+  }
+  .space-y-2\.5 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.625rem;
+    margin-bottom: 0;
+  }
+  .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.75rem;
+    margin-bottom: 0;
+  }
+  .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 1rem;
+    margin-bottom: 0;
+  }
+  .space-y-5 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 1.25rem;
+    margin-bottom: 0;
+  }
+  .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 1.5rem;
+    margin-bottom: 0;
+  }
+  .space-y-8 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 2rem;
+    margin-bottom: 0;
+  }
+  .space-y-12 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 3rem;
+    margin-bottom: 0;
+  }
+  @media (min-width: 40rem) {
+    .sm\:space-y-6 > :not([hidden]) ~ :not([hidden]) {
+      margin-top: 1.5rem;
+      margin-bottom: 0;
+    }
+  }
+}
+
+@utility hero-heading {
+  /*
+    leading-[1.06] doit rester actif uniquement sur le palier mobile : en
+    Tailwind v4, text-5xl/text-6xl lisent --tw-leading (défini par le dernier
+    utilitaire leading applicable), là où v3 tranchait selon l'ordre des
+    règles. sm:leading-none / lg:leading-none restaurent la hauteur de ligne 1
+    des rendus validés sur les grands écrans.
+  */
+  @apply font-display font-bold tracking-tight leading-[1.06] text-[2.15rem] sm:text-5xl sm:leading-none lg:text-6xl lg:leading-none;
+}
+
+@utility section-heading {
+  @apply font-display font-semibold text-2xl sm:text-3xl tracking-tight;
+}
+
+@utility eyebrow {
+  @apply inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-pt-orange-soft border border-pt-orange/40 text-[11px] font-semibold uppercase tracking-[.12em] text-pt-orange-ink;
+}
+
+@utility card {
+  @apply bg-white rounded-2xl border border-pt-line shadow-card;
+}
+
+@utility field-label {
+  @apply block text-xs font-semibold uppercase tracking-wider text-pt-neutral/80;
+}
+
+@utility field-input {
+  @apply w-full px-4 py-3 bg-white border border-pt-line rounded-xl text-[15px] placeholder:text-pt-neutral/70
+      focus:outline-hidden focus:border-pt-green focus:ring-2 focus:ring-pt-green/20 transition-colors;
+}
+
+@utility field-input-error {
+  @apply border-pt-danger focus:border-pt-danger focus:ring-pt-danger/20;
+}
+
+@utility nav-link {
+  @apply px-3 py-2 rounded-lg text-sm font-medium transition-colors;
+}
+
+@utility topo-bg {
+  /* Fond topographique — carte avant l'itinéraire */
+  position: relative;
+  isolation: isolate;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cg fill='none' stroke='%232B2F33' stroke-width='1.1' stroke-opacity='0.16'%3E%3Cellipse cx='168' cy='150' rx='26' ry='18' transform='rotate(-12 168 150)'/%3E%3Cellipse cx='166' cy='152' rx='50' ry='34' transform='rotate(-12 166 152)'/%3E%3Cellipse cx='164' cy='154' rx='76' ry='52' transform='rotate(-14 164 154)'/%3E%3Cellipse cx='162' cy='156' rx='104' ry='72' transform='rotate(-16 162 156)'/%3E%3Cellipse cx='160' cy='158' rx='134' ry='94' transform='rotate(-18 160 158)'/%3E%3Cellipse cx='158' cy='160' rx='166' ry='118' transform='rotate(-20 158 160)'/%3E%3Cellipse cx='156' cy='162' rx='200' ry='144' transform='rotate(-22 156 162)'/%3E%3Cellipse cx='154' cy='164' rx='236' ry='172' transform='rotate(-24 154 164)'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 320px 320px;
+    background-position: center;
+  }
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #2b2f3333 transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #2b2f3333;
+    border-radius: 999px;
+  }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Respecte prefers-reduced-motion — accessibilité */
+}
 
 @layer base {
   html {
@@ -24,7 +285,7 @@
   }
 
   :focus-visible {
-    @apply outline-none ring-2 ring-pt-green ring-offset-2 ring-offset-pt-cream;
+    @apply outline-hidden ring-2 ring-pt-green ring-offset-2 ring-offset-pt-cream;
   }
 
   ::selection {
@@ -39,84 +300,7 @@
   }
 }
 
-@layer components {
-  .hero-heading {
-    @apply font-display font-bold tracking-tight leading-[1.06] text-[2.15rem] sm:text-5xl lg:text-6xl;
-  }
-
-  .section-heading {
-    @apply font-display font-semibold text-2xl sm:text-3xl tracking-tight;
-  }
-
-  .eyebrow {
-    @apply inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-pt-orange-soft border border-pt-orange/40 text-[11px] font-semibold uppercase tracking-[.12em] text-pt-orange-ink;
-  }
-
-  .card {
-    @apply bg-white rounded-2xl border border-pt-line shadow-card;
-  }
-
-  .field-label {
-    @apply block text-xs font-semibold uppercase tracking-wider text-pt-neutral/80;
-  }
-
-  .field-input {
-    @apply w-full px-4 py-3 bg-white border border-pt-line rounded-xl text-[15px] placeholder:text-pt-neutral/70
-      focus:outline-none focus:border-pt-green focus:ring-2 focus:ring-pt-green/20 transition-colors;
-  }
-
-  .field-input-error {
-    @apply border-pt-danger focus:border-pt-danger focus:ring-pt-danger/20;
-  }
-
-  .nav-link {
-    @apply px-3 py-2 rounded-lg text-sm font-medium transition-colors;
-  }
-
-  /* Fond topographique — carte avant l'itinéraire */
-  .topo-bg {
-    position: relative;
-    isolation: isolate;
-  }
-
-  .topo-bg::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    opacity: 0.5;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cg fill='none' stroke='%232B2F33' stroke-width='1.1' stroke-opacity='0.16'%3E%3Cellipse cx='168' cy='150' rx='26' ry='18' transform='rotate(-12 168 150)'/%3E%3Cellipse cx='166' cy='152' rx='50' ry='34' transform='rotate(-12 166 152)'/%3E%3Cellipse cx='164' cy='154' rx='76' ry='52' transform='rotate(-14 164 154)'/%3E%3Cellipse cx='162' cy='156' rx='104' ry='72' transform='rotate(-16 162 156)'/%3E%3Cellipse cx='160' cy='158' rx='134' ry='94' transform='rotate(-18 160 158)'/%3E%3Cellipse cx='158' cy='160' rx='166' ry='118' transform='rotate(-20 158 160)'/%3E%3Cellipse cx='156' cy='162' rx='200' ry='144' transform='rotate(-22 156 162)'/%3E%3Cellipse cx='154' cy='164' rx='236' ry='172' transform='rotate(-24 154 164)'/%3E%3C/g%3E%3C/svg%3E");
-    background-size: 320px 320px;
-    background-position: center;
-  }
-}
-
 @layer utilities {
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: #2b2f3333 transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #2b2f3333;
-    border-radius: 999px;
-  }
-
-  .no-scrollbar {
-    scrollbar-width: none;
-  }
-
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Respecte prefers-reduced-motion — accessibilité */
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;

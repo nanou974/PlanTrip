@@ -29,7 +29,7 @@ export default function MarketingHeader() {
     <header
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-200 ${
         scrolled || open
-          ? 'bg-pt-cream/90 backdrop-blur-xl border-b border-pt-line shadow-sm'
+          ? 'bg-pt-cream/90 backdrop-blur-xl border-b border-pt-line shadow-xs'
           : 'bg-transparent border-b border-transparent'
       }`}
     >

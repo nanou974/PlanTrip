@@ -307,7 +307,7 @@ function EndpointRow({ kind, label, title, subtitle }) {
     <li>
       <div className="flex items-start gap-3 rounded-xl border border-pt-line bg-white p-3">
         <span
-          className="mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-white shadow"
+          className="mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-white shadow-sm"
           style={{ background: isStart ? '#2E7D5B' : '#2B2F33', boxShadow: '0 0 0 1px rgba(43,47,51,.15)' }}
         />
         <div className="min-w-0">

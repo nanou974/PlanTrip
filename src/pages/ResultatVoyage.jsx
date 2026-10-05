@@ -607,9 +607,9 @@ export default function ResultatVoyage() {
                 }
               />
               {hasCoords ? (
-                <div ref={mapRef} className="relative aspect-[16/10] rounded-xl overflow-hidden z-0">
+                <div ref={mapRef} className="relative aspect-16/10 rounded-xl overflow-hidden z-0">
                   {!online && (
-                    <div className="absolute left-2 top-2 z-[500]">
+                    <div className="absolute left-2 top-2 z-500">
                       <Pill tone="orange" icon="info">
                         Fond de carte hors connexion
                       </Pill>
@@ -617,7 +617,7 @@ export default function ResultatVoyage() {
                   )}
                 </div>
               ) : (
-                <div className="aspect-[16/10] rounded-xl z-0 bg-pt-cream border border-pt-line flex flex-col items-center justify-center text-center px-6">
+                <div className="aspect-16/10 rounded-xl z-0 bg-pt-cream border border-pt-line flex flex-col items-center justify-center text-center px-6">
                   <Icon name="pin" size={22} className="text-pt-neutral/70 mb-2" />
                   <p className="text-sm text-pt-neutral/80">
                     Coordonnées manquantes : la carte est indisponible.
@@ -720,7 +720,7 @@ export default function ResultatVoyage() {
                       type="button"
                       aria-pressed={isActive}
                       onClick={() => setSelectedAccom(opt)}
-                      className={`w-full !p-4 text-left flex items-center gap-3 border-2 transition-all ${
+                      className={`w-full p-4! text-left flex items-center gap-3 border-2 transition-all ${
                         isActive
                           ? 'border-pt-green bg-pt-green-soft'
                           : 'border-pt-line bg-pt-cream hover:border-pt-green/30'

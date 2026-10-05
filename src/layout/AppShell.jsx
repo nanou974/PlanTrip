@@ -46,7 +46,7 @@ export default function AppShell() {
     <div className="min-h-screen bg-pt-cream">
       <a
         href="#contenu"
-        className="sr-only focus:not-sr-only focus:fixed focus:z-[60] focus:top-3 focus:left-3 focus:bg-white focus:px-4 focus:py-2.5 focus:rounded-xl focus:shadow-pop focus:text-sm focus:font-semibold"
+        className="sr-only focus:not-sr-only focus:fixed focus:z-60 focus:top-3 focus:left-3 focus:bg-white focus:px-4 focus:py-2.5 focus:rounded-xl focus:shadow-pop focus:text-sm focus:font-semibold"
       >
         Aller au contenu
       </a>

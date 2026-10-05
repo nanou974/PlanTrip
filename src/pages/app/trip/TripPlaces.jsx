@@ -127,7 +127,7 @@ export default function TripPlaces() {
           }
         />
         <div className="mt-4 flex flex-wrap items-end gap-3">
-          <label className="min-w-[14rem] grow text-sm">
+          <label className="min-w-56 grow text-sm">
             <span className="field-label">Que cherchez-vous ?</span>
             <SelectInput
               value={searchCat}

@@ -28,7 +28,7 @@ par `.gitignore` pour ne pas alourdir le dépôt, et sont donc absents d'un clon
 | --- | --- |
 | Framework | React 19 + React Router 7 |
 | Bundler | Vite 8 (rolldown) |
-| Styles | Tailwind CSS 3.4, tokens `pt.*` dans `tailwind.config.js` |
+| Styles | Tailwind CSS 4.3, tokens `pt.*` déclarés via `@theme` dans `src/index.css` (Tailwind CSS 3.4 + `tailwind.config.js` historique, migré — parité visuelle vérée page par page) |
 | Cartographie | Leaflet 1.9 (bundlé, CDN retiré) |
 | Routage / géocodage | OSRM + Photon (OSM, public) |
 | Tests | Vitest 5 + jsdom + Testing Library |
@@ -324,17 +324,12 @@ CI à chaque push.
 
 - `npm audit --omit=dev` → **0 vulnérabilité** : aucune dépendance de production
   (`react`, `react-dom`, `react-router-dom`, `leaflet`) n'est concernée.
-- `npm audit` complet → 5 alertes *high*, toutes dans l'outillage de build : `braces`
-  (épuisement de pile sur motifs imbriqués, GHSA-vfj7-8cjw-p6xm), remonté par
-  `micromatch` → `fast-glob` / `chokidar` → `tailwindcss@3.4.x`.
-- **Aucune version compatible n'existe.** L'advisory couvre `braces <= 3.0.3`, soit
-  *toutes* les versions publiées : la dernière release (`3.0.3`, septembre 2024) est déjà
-  installée. `npm audit fix` (sans `--force`) ne résout rien ; seule piste proposée
-  `npm audit fix --force` installe `tailwindcss@4`, rupture majeure (migration du fichier
-  de configuration et des directives `@tailwind`) : **non appliqué**, et documenté ici
-  plutôt que subi silencieusement.
-- Le paquet vulnérable ne s'exécute que lors du build, sur des motifs de fichiers internes
-  au dépôt — jamais dans le navigateur ni dans un service exposé.
+- `npm audit` complet → **0 vulnérabilité** (octobre 2026). Les 5 alertes *high*
+  historiques venaient de `braces` (GHSA-vfj7-8cjw-p6xm, épuisement de pile sur motifs
+  imbriqués), remonté par `micromatch` → `fast-glob` / `chokidar` → `tailwindcss@3.4.x` :
+  advisory couvrant *toutes* les versions publiées de `braces`, donc sans correctif sur
+  la branche 3.x. La migration vers **Tailwind CSS 4** (lot « migration ») a fait disparaître
+  cette chaîne de dépendances : `npm audit fix --force` n'est plus nécessaire.
 
 ## Licence
 

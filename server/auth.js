@@ -9,7 +9,7 @@ const SCRYPT_P = 1
 const KEY_BYTES = 32
 const SALT_BYTES = 16
 
-export const PASSWORD_MIN_LENGTH = 6
+export const PASSWORD_MIN_LENGTH = 8
 
 /** Hache un mot de passe avec scrypt (côté serveur). Fiche { algo, salt, hash, params }. */
 export async function hashPassword(password) {

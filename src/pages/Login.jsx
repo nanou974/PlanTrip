@@ -5,22 +5,6 @@ import { apiEnabled, isUnreachable } from '../lib/api.js'
 import AuthSecurityNotice from '../components/AuthSecurityNotice.jsx'
 import { Button, Card, Field, TextInput } from '../design/ui.jsx'
 
-function SocialButtons({ onLogin }) {
-  return (
-    <div className="grid gap-3">
-      <Button variant="secondary" block onClick={() => onLogin('google')}>
-        <span className="flex h-5 w-5 items-center justify-center rounded-full border border-pt-line bg-white text-[11px] font-bold">
-          G
-        </span>
-        Continuer avec Google
-      </Button>
-      <Button block onClick={() => onLogin('facebook')} style={{ backgroundColor: '#1877F2' }}>
-        Continuer avec Facebook
-      </Button>
-    </div>
-  )
-}
-
 function ModeSwitch({ mode, onChange }) {
   return (
     <div className="flex rounded-xl bg-pt-cream p-1" role="tablist" aria-label="Mode de connexion">
@@ -46,7 +30,7 @@ function ModeSwitch({ mode, onChange }) {
 }
 
 export default function Login() {
-  const { login, loginWithProvider, sendMagicLink, verifyOTP, consumeMagicToken, getMagicSend } = useAuth()
+  const { login, sendMagicLink, verifyOTP, consumeMagicToken, getMagicSend } = useAuth()
   const nav = useNavigate()
   const [params, setParams] = useSearchParams()
   const [mode, setMode] = useState('password')
@@ -137,11 +121,6 @@ export default function Login() {
     }
   }
 
-  function onProvider(provider) {
-    loginWithProvider(provider)
-    nav('/')
-  }
-
   return (
     <section className="bg-pt-cream topo-bg py-12">
       <div className="mx-auto max-w-md px-5">
@@ -149,14 +128,6 @@ export default function Login() {
         <p className="mt-2 text-center text-pt-neutral/80">Retrouvez vos voyages, où que vous soyez</p>
 
         <Card className="mt-8">
-          <SocialButtons onLogin={onProvider} />
-
-          <div className="my-6 flex items-center gap-3">
-            <span className="h-px flex-1 bg-pt-line" />
-            <span className="text-xs uppercase text-pt-neutral/70">ou</span>
-            <span className="h-px flex-1 bg-pt-line" />
-          </div>
-
           <ModeSwitch
             mode={mode}
             onChange={(next) => {

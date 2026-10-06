@@ -213,13 +213,13 @@ export default function Profile() {
                     label="Nouveau mot de passe"
                     id="profile-new-password"
                     required
-                    hint="6 caractères minimum."
+                    hint="8 caractères minimum."
                   >
                     <TextInput
                       id="profile-new-password"
                       type="password"
                       required
-                      minLength={6}
+                      minLength={8}
                       autoComplete="new-password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
@@ -227,7 +227,7 @@ export default function Profile() {
                   </Field>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <Button type="submit" disabled={!currentPassword || newPassword.length < 6}>
+                  <Button type="submit" disabled={!currentPassword || newPassword.length < 8}>
                     Modifier le mot de passe
                   </Button>
                   {passwordChanged && (
@@ -240,8 +240,7 @@ export default function Profile() {
               </form>
             ) : (
               <p className="text-sm text-pt-neutral/80">
-                Ce compte n’a pas de mot de passe : il est ouvert par lien magique ou par un
-                fournisseur (Google, Facebook).
+                Ce compte n’a pas de mot de passe : il est ouvert par lien magique.
               </p>
             )}
           </Card>

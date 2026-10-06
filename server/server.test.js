@@ -1,8 +1,11 @@
 // @vitest-environment node
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { request } from 'node:http'
+import { DatabaseSync } from 'node:sqlite'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { openDatabase } from './db.js'
 import { createApp, loadConfig } from './index.js'
 
 let server
@@ -31,6 +34,24 @@ async function api(path, { method = 'POST', body, cookie, headers = {} } = {}) {
   const setCookie = res.headers.get('set-cookie') || ''
   const data = res.status === 204 ? null : await res.json().catch(() => null)
   return { status: res.status, data, setCookie }
+}
+
+/** `fetch` interdit de forcer l'en-tête Host : on passe par `node:http` pour les attaques par Host. */
+function rawRequest(path, { host, body }) {
+  const { port } = new URL(base)
+  return new Promise((resolve, reject) => {
+    const payload = JSON.stringify(body)
+    const req = request(
+      { host: '127.0.0.1', port, path, method: 'POST', headers: { Host: host, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } },
+      (res) => {
+        let text = ''
+        res.on('data', (c) => (text += c))
+        res.on('end', () => resolve({ status: res.statusCode, text }))
+      },
+    )
+    req.on('error', reject)
+    req.end(payload)
+  })
 }
 
 function sessionCookie(setCookie) {
@@ -85,6 +106,9 @@ describe('API auth — comptes et sessions', () => {
     expect(
       (await api('/api/auth/register', { body: { email: 'ok@exemple.fr', password: 'court' } })).status,
     ).toBe(400)
+    // 8 caractères minimum : 7 refusés, 8 acceptés.
+    expect((await api('/api/auth/register', { body: { email: 'sept@exemple.fr', password: '1234567' } })).status).toBe(400)
+    expect((await api('/api/auth/register', { body: { email: 'huit@exemple.fr', password: '12345678' } })).status).toBe(201)
   })
 
   it('connecte avec le bon mot de passe et refuse le mauvais, puis déconnecte', async () => {
@@ -139,7 +163,9 @@ describe('API Magic Link — code par email + lien', () => {
     const sent = await api('/api/auth/magic-link', { body: { email: 'magic@exemple.fr' } })
     expect(sent.status).toBe(202)
     expect(sent.data.mode).toBe('file')
-    expect(sent.data.mailbox).toMatch(/magic_exemple_fr.*\.eml$/)
+    // Le chemin du fichier .eml ne sort jamais du serveur.
+    expect(sent.data).not.toHaveProperty('mailbox')
+    expect(mailFiles().some((name) => /magic_exemple_fr.*\.eml$/.test(name))).toBe(true)
 
     const mail = lastMail()
     expect(mail).toContain('To: magic@exemple.fr')
@@ -215,6 +241,76 @@ describe('API — garde-fous', () => {
   })
 })
 
+describe('API — corps et cookies invalides', () => {
+  it('répond 400 (et non 500) à un corps JSON qui n’est pas un objet', async () => {
+    for (const raw of ['null', '[]', '"texte"', '42']) {
+      const res = await fetch(`${base}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: raw,
+      })
+      expect(res.status, `corps ${raw}`).toBe(400)
+    }
+  })
+
+  it('ignore un cookie mal encodé au lieu de répondre 500', async () => {
+    const res = await api('/api/auth/me', { method: 'GET', cookie: 'pt_session=%E0%A4%A' })
+    expect(res.status).toBe(401)
+  })
+})
+
+describe('API — pré-détournement de compte', () => {
+  it('le lien magique supprime le mot de passe posé par un tiers et coupe ses sessions', async () => {
+    // L'attaquant inscrit l'adresse de la victime avec son propre mot de passe.
+    const attacker = await api('/api/auth/register', { body: { email: 'victime@exemple.fr', password: 'Pirate-123' } })
+    const attackerCookie = sessionCookie(attacker.setCookie)
+    expect((await api('/api/auth/me', { method: 'GET', cookie: attackerCookie })).status).toBe(200)
+
+    // La victime prouve qu'elle contrôle la boîte mail.
+    await api('/api/auth/magic-link', { body: { email: 'victime@exemple.fr' } })
+    const token = lastMail().match(/magique=([a-f0-9]{64})/)[1]
+    const open = await api('/api/auth/magic-link/open', { body: { token } })
+    expect(open.status).toBe(200)
+    expect(open.data.user.hasPassword).toBe(false)
+
+    // L'attaquant perd la session et le mot de passe ; la victime garde la sienne.
+    expect((await api('/api/auth/me', { method: 'GET', cookie: attackerCookie })).status).toBe(401)
+    expect((await api('/api/auth/login', { body: { email: 'victime@exemple.fr', password: 'Pirate-123' } })).status).toBe(401)
+    expect((await api('/api/auth/me', { method: 'GET', cookie: sessionCookie(open.setCookie) })).status).toBe(200)
+  })
+
+  it('un compte déjà ouvert par lien magique n’est pas affecté une seconde fois', async () => {
+    await api('/api/auth/magic-link', { body: { email: 'deux-fois@exemple.fr' } })
+    const first = await api('/api/auth/magic-link/open', {
+      body: { token: lastMail().match(/magique=([a-f0-9]{64})/)[1] },
+    })
+    const firstCookie = sessionCookie(first.setCookie)
+    // Déjà vérifié : une nouvelle preuve ne touche ni au compte ni à ses sessions.
+    expect(server.plantripStore.claimUnverifiedAccount(first.data.user.id)).toBe(false)
+    expect((await api('/api/auth/me', { method: 'GET', cookie: firstCookie })).status).toBe(200)
+  })
+})
+
+describe('Migration de la base — colonne verified', () => {
+  it('marque vérifiés les comptes magiques existants et non vérifiés les autres', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'plantrip-db-'))
+    const file = join(dir, 'ancienne.db')
+    const legacy = new DatabaseSync(file)
+    legacy.exec(`CREATE TABLE users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, name TEXT NOT NULL,
+      provider TEXT NOT NULL, algo TEXT, salt TEXT, hash TEXT, params TEXT, created_at INTEGER NOT NULL);
+      INSERT INTO users VALUES ('1','mdp@exemple.fr','a','email','scrypt','s','h','{}',1);
+      INSERT INTO users VALUES ('2','magique@exemple.fr','b','magic',NULL,NULL,NULL,NULL,2);`)
+    legacy.close()
+
+    const db = openDatabase(file)
+    const rows = Object.fromEntries(db.prepare('SELECT email, verified FROM users').all().map((r) => [r.email, r.verified]))
+    expect(rows).toEqual({ 'mdp@exemple.fr': 0, 'magique@exemple.fr': 1 })
+    db.close()
+    // Ouvrir une base déjà migrée est sans effet.
+    expect(() => openDatabase(file).close()).not.toThrow()
+  })
+})
+
 describe('API profil', () => {
   it('met à jour le nom côté serveur, refuse sans session et valide la longueur', async () => {
     const stamp = Date.now()
@@ -239,6 +335,14 @@ describe('API profil', () => {
 })
 
 describe('Origine des liens de connexion', () => {
+  it('refuse d’envoyer un lien dont l’origine viendrait d’un Host non maîtrisé', async () => {
+    const before = mailFiles().length
+    const res = await rawRequest('/api/auth/magic-link', { host: 'evil.example.com', body: { email: 'poison@exemple.fr' } })
+    expect(res.status).toBe(503)
+    expect(res.text).toContain('public_url_required')
+    expect(mailFiles().length).toBe(before)
+  })
+
   it('construit les liens depuis PUBLIC_URL quand elle est définie', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'plantrip-mail2-'))
     const cfg = loadConfig(
@@ -258,6 +362,40 @@ describe('Origine des liens de connexion', () => {
       const mail = readFileSync(join(dir, files[0]), 'utf8')
       expect(mail).toContain('https://billet.example/login?magique=')
       expect(mail).not.toContain('127.0.0.1')
+
+      // Origine publique en HTTPS : le cookie de session est marqué Secure.
+      const reg = await fetch(`http://127.0.0.1:${srv.address().port}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'secure@exemple.fr', password: 'Secret-123' }),
+      })
+      expect(reg.status).toBe(201)
+      expect(reg.headers.get('set-cookie')).toContain('Secure')
+    } finally {
+      await new Promise((resolve) => srv.close(resolve))
+    }
+  })
+})
+
+describe('Limite des inscriptions', () => {
+  it('bloque la création de comptes en rafale depuis une même adresse', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'plantrip-mail4-'))
+    const cfg = loadConfig({ DATABASE_PATH: ':memory:', MAILBOX_DIR: dir, MAIL_MODE: 'file' }, [])
+    const srv = createApp(cfg)
+    await new Promise((resolve) => srv.listen(0, '127.0.0.1', resolve))
+    try {
+      const origin = `http://127.0.0.1:${srv.address().port}`
+      const statuses = []
+      for (let i = 0; i < 31; i++) {
+        const res = await fetch(`${origin}/api/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: `rafale-${i}@exemple.fr`, password: 'Secret-123' }),
+        })
+        statuses.push(res.status)
+      }
+      expect(statuses.slice(0, 30).every((s) => s === 201)).toBe(true)
+      expect(statuses[30]).toBe(429)
     } finally {
       await new Promise((resolve) => srv.close(resolve))
     }

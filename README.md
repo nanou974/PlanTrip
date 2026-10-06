@@ -28,7 +28,7 @@ par `.gitignore` pour ne pas alourdir le dépôt, et sont donc absents d'un clon
 | --- | --- |
 | Framework | React 19 + React Router 7 |
 | Bundler | Vite 8 (rolldown) |
-| Styles | Tailwind CSS 4.3, tokens `pt.*` déclarés via `@theme` dans `src/index.css` (Tailwind CSS 3.4 + `tailwind.config.js` historique, migré — parité visuelle vérée page par page) |
+| Styles | Tailwind CSS 4.3, tokens `pt.*` déclarés via `@theme` dans `src/index.css` (Tailwind CSS 3.4 + `tailwind.config.js` historique, migré — parité visuelle vérifiée page par page) |
 | Cartographie | Leaflet 1.9 (bundlé, CDN retiré) |
 | Routage / géocodage | OSRM + Photon (OSM, public) |
 | Tests | Vitest 5 + jsdom + Testing Library |
@@ -139,22 +139,41 @@ TTL 7 jours). **Magic Link** : code à 6 chiffres valable 10 minutes (5 tentativ
 des charges. Envois limités (1 demande / 15 s **par email** et 15 / 10 min **par adresse**,
 5 vérifications / 10 min, 10 échecs de connexion / 5 min et 40 / 5 min par adresse) ; les
 compteurs par adresse ne s'appliquent que si `TRUST_PROXY=1` (derrière un reverse proxy de
-confiance qui pose `X-Forwarded-For`) ; les erreurs sont génériques côté identifiants (pas
+confiance qui pose `X-Forwarded-For`) ; la création de compte est limitée à 30 / 10 min par
+adresse. À la **connexion** et au **Magic Link**, les erreurs sont génériques (pas
 d'énumération d'emails) et les vérifications à durée dépassée retombent sur un scrypt factice
-(pas d'écart de temps révélateur d'un compte existant).
+(pas d'écart de temps révélateur d'un compte existant). L'**inscription**, elle, répond
+« Email déjà utilisé » : le compromis est assumé, borné par la limite ci-dessus.
+
+**Mot de passe** : 8 caractères minimum (serveur et client).
+
+**Pré-détournement de compte** : l'inscription par mot de passe ne prouve pas la possession de
+l'adresse. Quand un Magic Link (code ou lien) prouve cette possession pour un compte encore non
+vérifié, le serveur **supprime son mot de passe et coupe toutes ses sessions** (colonne
+`users.verified`) : un tiers qui aurait inscrit l'adresse d'autrui perd tout accès. Conséquence
+pour la personne légitime qui s'était elle-même inscrite : elle reste connectée par le lien
+magique, mais son mot de passe n'existe plus (elle se reconnecte désormais par Magic Link).
+
+**Lien magique et origine** : l'en-tête `Host` est contrôlé par l'appelant, il ne sert donc
+jamais à construire un lien hors boucle locale. Sans `PUBLIC_URL`, l'envoi est refusé
+(`503 public_url_required`) ; **`PUBLIC_URL` est obligatoire en production** (ex.
+`https://plantrip.fr`). Avec une origine `https://`, le cookie de session est marqué `Secure`.
 
 **Côté client** (`src/lib/api.js` + `src/lib/auth.jsx`) : les appels vont d'abord au serveur
 (`credentials: include`), avec **repli local** si celui-ci est injoignable — l'application reste
 utilisable hors connexion. Le miroir `localStorage.plantrip_users_db` (hachage PBKDF2 local,
 jamais en clair) est conservé après inscription et changement de mot de passe : c'est lui qui
 sert de vérification hors ligne et de source de vérité pour les données de l'appareil. En
-`MODE=test`, l'API est coupée : les tests unitaires exercent le repli local. `loginWithProvider`
-simule OAuth le temps d'un branchement réel.
+`MODE=test`, l'API est coupée : les tests unitaires exercent le repli local. Il n'y a pas de
+connexion par fournisseur (Google, Facebook) : elle n'existait qu'en simulation et a été retirée.
+Une session ouverte par le serveur est marquée `serverSession` ; au démarrage, le client la
+confirme par `GET /api/auth/me` et déconnecte l'interface si le serveur répond 401 (serveur
+injoignable : l'état local est conservé).
 
 Variables d'environnement du serveur : `HOST`, `PORT` (4174), `DATABASE_PATH`
 (`var/plantrip.db`), `MAIL_MODE` (`file`), `MAILBOX_DIR` (`var/mailbox`), `SMTP_URL`,
 `MAIL_FROM`, `MAGIC_TTL_MIN` (10), `SESSION_TTL_DAYS` (7), `PUBLIC_URL` (origine absolue des
-liens magiques — sinon l'adresse de la requête, Host sanitisé), `TRUST_PROXY` (`1` pour faire
+liens magiques, **obligatoire en production** ; sans elle, seule la boucle locale est acceptée), `TRUST_PROXY` (`1` pour faire
 confiance à `X-Forwarded-For`), `DIST_DIR` (`dist/`). En développement, le proxy Vite cible
 `API_PORT` (4174 par défaut).
 
@@ -248,8 +267,8 @@ trait 2 px, `currentColor`.
 
 ## Tests
 
-Trois suites distinctes : **225 tests unitaires** (22 fichiers, `npm run test` — dont
-l'API serveur), **44 tests en navigateur** (`npm run test:e2e`, dont **21 tests d'audit
+Trois suites distinctes : **232 tests unitaires** (22 fichiers, `npm run test` — dont
+l'API serveur), **45 tests en navigateur** (`npm run test:e2e`, dont **21 tests d'audit
 accessibilité** couvrant 27 pages/états) et le gate `npm run verify` (lint + unitaires + build).
 
 ```bash
@@ -272,7 +291,7 @@ npm run test
   inscription, connexion, sessions, changement de mot de passe, Magic Link (code, lien,
   réutilisation), profil (`PATCH profile`), origine des liens (`PUBLIC_URL`), en-têtes de
   sécurité et repli SPA des fichiers statiques, purge des sessions expirées, limites de débit
-  (globales et par adresse avec `TRUST_PROXY`), absence de hachages dans les réponses
+  (globales et par adresse avec `TRUST_PROXY`), absence de hachages dans les réponses, corps JSON non objet (400), cookie mal encodé, lien magique refusé sur Host non maîtrisé, cookie `Secure` sous `PUBLIC_URL` https, pré-détournement de compte, limite des inscriptions, migration de la colonne `verified`
 - `src/components/AuthSecurityNotice.test.jsx` — bandeau d'honnêteté sur les pages de compte
 - `src/pages/Contact.test.jsx` — lien `mailto:` construit par le formulaire, aucun faux envoi
 - `src/test/network.test.js` — garantit qu'aucun test ne dépend du réseau
@@ -301,14 +320,14 @@ npm run test:e2e
 - `e2e/app.spec.js` — création d'un compte (mot de passe haché côté serveur **et** en clair
   jamais présent dans le miroir local), profil (nom sauvegardé sur le serveur **et** dans le
   miroir local), export de sauvegarde (téléchargement réel),
-  changement de mot de passe, déconnexion/reconnexion, tableau de bord, onglets
+  changement de mot de passe, déconnexion/reconnexion, session serveur expirée (cookie supprimé → interface déconnectée au rechargement), tableau de bord, onglets
 - `e2e/auth.spec.js` — Magic Link de bout en bout : le code et le lien sont lus dans les
   fichiers `.eml` du serveur, connexion par code, connexion par `?magique=`, refus d'un lien
   déjà consommé
 - `e2e/offline.spec.js` — perte réseau réelle (`context.setOffline(true)`), rechargement hors ligne : SW actif, données locales, bandeau explicite
 - `e2e/a11y.spec.js` — audit axe-core (ci-dessous)
 
-43 tests Playwright au total, commandes séparées de la suite unitaire.
+45 tests Playwright au total, commandes séparées de la suite unitaire.
 
 ### Audit accessibilité automatisé
 
@@ -364,7 +383,7 @@ python serve.py    # http://localhost:8000, repli sur index.html
 Lien d'évitement, focus visible, contrastes AA, navigation clavier complète, libellés de
 formulaires, doubles signaux couleur/libellé. Déclaration détaillée sur `/accessibilite`.
 
-Contrôlé en continu par l'audit automatisé décrit plus haut (`npm run test:a11y`, 26
+Contrôlé en continu par l'audit automatisé décrit plus haut (`npm run test:a11y`, 27
 pages/états en 21 tests, règles WCAG 2.1 A/AA, aucune règle désactivée) et exécuté dans la
 CI à chaque push.
 

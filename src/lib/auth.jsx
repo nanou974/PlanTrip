@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { AuthCtx } from './authContext.js'
 import { hashPassword, verifyPassword, isPasswordHashingAvailable } from './password.js'
-import { api, apiEnabled, isUnreachable } from './api.js'
+import { api, apiEnabled, isApiError, isUnreachable } from './api.js'
 const USER_KEY = "plantrip_user"
 const USERS_KEY = "plantrip_users_db"
 const OTP_KEY = "plantrip_otp"
@@ -18,9 +18,16 @@ function getUsers(){
 }
 function saveUsers(u){ localStorage.setItem(USERS_KEY, JSON.stringify(u)) }
 
-/** Forme publique d'un utilisateur : jamais la fiche de hachage. */
-function publicView(u){
-  return { id:u.id, email:u.email, name:u.name, provider:u.provider }
+/**
+ * Forme publique d'un utilisateur : jamais la fiche de hachage.
+ * `serverSession` marque une session ouverte par le serveur : seule celle-là
+ * peut être invalidée côté serveur (expiration, déconnexion ailleurs) ; un
+ * compte purement local n'a pas de session à vérifier.
+ */
+function publicView(u, serverSession=false){
+  const view={ id:u.id, email:u.email, name:u.name, provider:u.provider }
+  if(serverSession) view.serverSession=true
+  return view
 }
 
 /**
@@ -78,6 +85,15 @@ export function AuthProvider({children}){
   useEffect(()=>{
     ensureMigrated()
   },[])
+  // Au démarrage, une session serveur expirée ne doit pas laisser l'interface
+  // « connectée ». Serveur injoignable : on garde l'état local (hors connexion).
+  const [hadServerSession]=useState(()=>Boolean(user?.serverSession))
+  useEffect(()=>{
+    if(!hadServerSession || !apiEnabled()) return
+    api('/auth/me').catch(err=>{
+      if(isApiError(err) && err.status===401) setUser(null)
+    })
+  },[hadServerSession])
 
   /**
    * Tient aussi le miroir local du compte (hash PBKDF2) : les données de
@@ -107,7 +123,7 @@ export function AuthProvider({children}){
       try{
         const data=await api('/auth/register',{method:'POST',body:{email:clean,password,name}})
         await mirrorLocalAccount({...data.user,password})
-        setUser(publicView(data.user))
+        setUser(publicView(data.user,true))
         return data.user
       }catch(err){
         // Injoignable → repli local ; sinon le message du serveur fait foi
@@ -151,9 +167,9 @@ export function AuthProvider({children}){
       try{
         // Le serveur fait foi : il accepte aussi un mot de passe changé depuis
         // un autre appareil — le miroir local est alors resynchronisé.
-        const data=await api('/auth/login',{method:'POST',body:{email:clean,password}},{timeoutMs:4000})
+        const data=await api('/auth/login',{method:'POST',body:{email:clean,password},timeoutMs:4000})
         await mirrorLocalAccount({...data.user,password})
-        setUser(publicView(data.user))
+        setUser(publicView(data.user,true))
         return data.user
       }catch(err){
         if(isUnreachable(err)){
@@ -163,7 +179,7 @@ export function AuthProvider({children}){
           // import en ligne (le serveur re-hache de son côté).
           try{
             const data=await api('/auth/register',{method:'POST',body:{email:clean,password,name:u.name}})
-            setUser(publicView(data.user))
+            setUser(publicView(data.user,true))
             return data.user
           }catch(importErr){
             if(!isUnreachable(importErr)) throw importErr
@@ -181,18 +197,6 @@ export function AuthProvider({children}){
       return u
     }
     throw new Error(INCORRECT)
-  }
-
-  function loginWithProvider(provider){
-    // Mock OAuth - en prod, remplacer par Supabase/Firebase
-    // Pour démo, crée un user fictif et connecte
-    const fakeEmail=`${provider}_${uid()}@example.com`
-    const name= provider==="google" ? "Utilisateur Google" : provider==="facebook" ? "Utilisateur Facebook" : "Utilisateur"
-    const users=getUsers()
-    const nu={id:uid(), email:fakeEmail, name, provider, avatar:null, createdAt:new Date().toISOString()}
-    users.push(nu); saveUsers(users)
-    setUser({id:nu.id,email:nu.email,name:nu.name,provider})
-    return nu
   }
 
   /**
@@ -219,7 +223,7 @@ export function AuthProvider({children}){
     if(apiEnabled()){
       try{
         const data=await api('/auth/magic-link/verify',{method:'POST',body:{email:clean,code:typed}})
-        setUser(publicView(data.user))
+        setUser(publicView(data.user,true))
         await mirrorLocalAccount(data.user)
         const store=readOtpStore(); delete store[clean]; writeOtpStore(store)
         return data.user
@@ -247,7 +251,7 @@ export function AuthProvider({children}){
     if(!apiEnabled()) return false
     try{
       const data=await api('/auth/magic-link/open',{method:'POST',body:{token}})
-      setUser(publicView(data.user))
+      setUser(publicView(data.user,true))
       await mirrorLocalAccount(data.user)
       return true
     }catch(err){
@@ -284,7 +288,7 @@ export function AuthProvider({children}){
 
   async function changePassword({currentPassword,newPassword}){
     if(!user) throw new Error("Connectez-vous pour changer de mot de passe")
-    if(!newPassword || String(newPassword).length<6) throw new Error("Nouveau mot de passe : 6 caractères minimum")
+    if(!newPassword || String(newPassword).length<8) throw new Error("Nouveau mot de passe : 8 caractères minimum")
     await ensureMigrated()
     if(apiEnabled()){
       try{
@@ -322,5 +326,5 @@ export function AuthProvider({children}){
     return u
   }
 
-  return <AuthCtx.Provider value={{user, register, login, loginWithProvider, sendMagicLink, verifyOTP, consumeMagicToken, getMagicSend: ()=>magicSendPromise, logout, updateProfile, changePassword, isAuthenticated: !!user}}>{children}</AuthCtx.Provider>
+  return <AuthCtx.Provider value={{user, register, login, sendMagicLink, verifyOTP, consumeMagicToken, getMagicSend: ()=>magicSendPromise, logout, updateProfile, changePassword, isAuthenticated: !!user}}>{children}</AuthCtx.Provider>
 }

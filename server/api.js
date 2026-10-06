@@ -50,11 +50,15 @@ function readBody(req) {
     })
     req.on('end', () => {
       if (!chunks.length) return resolve({})
+      let parsed
       try {
-        resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')))
+        parsed = JSON.parse(Buffer.concat(chunks).toString('utf8'))
       } catch {
-        reject(new Error('invalid_json'))
+        return reject(new Error('invalid_json'))
       }
+      // `null`, un tableau ou un scalaire ne sont pas des corps exploitables.
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return reject(new Error('invalid_json'))
+      resolve(parsed)
     })
     req.on('error', reject)
   })
@@ -64,7 +68,12 @@ function cookiesOf(req) {
   const out = {}
   for (const part of String(req.headers.cookie || '').split(';')) {
     const i = part.indexOf('=')
-    if (i > 0) out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim())
+    if (i <= 0) continue
+    try {
+      out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim())
+    } catch {
+      // Cookie mal encodé : ignoré, comme s'il était absent.
+    }
   }
   return out
 }
@@ -75,23 +84,18 @@ function isHttps(req) {
 }
 
 /**
- * Origine des liens magiques. `PUBLIC_URL` fait foi (recommandé en production,
- * et seul moyen de maîtriser l'origine derrière un reverse proxy) ; sinon on
- * dérive de la requête, en n'acceptant que http(s) et un Host plausible — un
- * avertissement signale l'origine non maîtrisée.
+ * Origine des liens magiques. `PUBLIC_URL` fait foi : c'est la seule origine
+ * que le serveur maîtrise. Sans elle, on ne dérive l'origine de la requête
+ * que pour la boucle locale (développement, tests) ; ailleurs, l'en-tête Host
+ * est contrôlé par l'appelant et permettrait d'envoyer à la victime un lien
+ * pointant vers le site d'un attaquant — on renvoie alors `null` (refus).
  */
 function baseUrlOf(req, config) {
   if (config.publicUrl) return config.publicUrl
+  const host = String(req.headers.host || '')
+  if (!HOST_RE.test(host) || !LOOPBACK_RE.test(host)) return null
   const fwd = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim()
   const proto = fwd === 'https' || fwd === 'http' ? fwd : isHttps(req) ? 'https' : 'http'
-  const host = String(req.headers.host || 'localhost')
-  if (!HOST_RE.test(host)) return 'http://localhost'
-  if (!LOOPBACK_RE.test(host)) {
-    console.warn(
-      `[plantrip-server] PUBLIC_URL absent : lien magique construit depuis l'en-tête Host (${host}). ` +
-        'Définissez PUBLIC_URL pour maîtriser l’origine des liens de connexion.',
-    )
-  }
   return `${proto}://${host}`
 }
 
@@ -103,8 +107,10 @@ function clientIp(req, config) {
   return req.socket?.remoteAddress || 'inconnu'
 }
 
-function cookieAttributes(req) {
-  return `Path=/; HttpOnly; SameSite=Lax${isHttps(req) ? '; Secure' : ''}`
+/** `Secure` si la requête arrive en HTTPS, ou si l'origine publique configurée est en HTTPS. */
+function cookieAttributes(req, config) {
+  const secure = isHttps(req) || String(config.publicUrl || '').startsWith('https://')
+  return `Path=/; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`
 }
 
 export function createApiHandler({ store, config }) {
@@ -115,13 +121,15 @@ export function createApiHandler({ store, config }) {
   // Par adresse : un pisteur ne peut pas faire tourner les limites par email.
   const magicIpLimiter = createRateLimiter({ max: 15, windowMs: 10 * 60_000 })
   const loginIpLimiter = createRateLimiter({ max: 40, windowMs: 5 * 60_000 })
+  // Inscriptions : chaque création coûte un scrypt et une ligne en base.
+  const registerIpLimiter = createRateLimiter({ max: 30, windowMs: 10 * 60_000 })
 
   function startSession(req, res, userId) {
     const token = randomToken()
     store.createSession(sha256Hex(token), userId, config.sessionTtlMs)
     res.setHeader(
       'Set-Cookie',
-      `${SESSION_COOKIE}=${token}; ${cookieAttributes(req)}; Max-Age=${Math.floor(config.sessionTtlMs / 1000)}`,
+      `${SESSION_COOKIE}=${token}; ${cookieAttributes(req, config)}; Max-Age=${Math.floor(config.sessionTtlMs / 1000)}`,
     )
     return token
   }
@@ -145,6 +153,9 @@ export function createApiHandler({ store, config }) {
   }
 
   async function handleRegister(req, res) {
+    if (!registerIpLimiter.hit(`register-ip:${clientIp(req, config)}`)) {
+      return fail(res, 429, 'too_many_requests', 'Trop de créations de compte : réessayez dans quelques minutes.')
+    }
     const body = await readBody(req)
     const email = normalizeEmail(body.email)
     const password = String(body.password || '')
@@ -227,6 +238,14 @@ export function createApiHandler({ store, config }) {
     const body = await readBody(req)
     const email = normalizeEmail(body.email)
     if (!EMAIL_RE.test(email)) return fail(res, 400, 'invalid_email', 'Adresse e-mail invalide')
+    const baseUrl = baseUrlOf(req, config)
+    if (!baseUrl) {
+      console.error(
+        '[plantrip-server] PUBLIC_URL absent : lien magique refusé (l’en-tête Host n’est pas fiable). ' +
+          'Définissez PUBLIC_URL, par exemple https://plantrip.fr.',
+      )
+      return fail(res, 503, 'public_url_required', 'Connexion par lien magique momentanément indisponible.')
+    }
     const emailKey = `magic:${email}`
     const ipKey = `magic-ip:${clientIp(req, config)}`
     if (!magicRequestLimiter.hit(emailKey)) {
@@ -249,7 +268,7 @@ export function createApiHandler({ store, config }) {
         to: email,
         code,
         token,
-        baseUrl: baseUrlOf(req, config),
+        baseUrl,
         ttlMinutes: Math.round(config.magicTtlMs / 60_000),
         config,
       })
@@ -261,10 +280,15 @@ export function createApiHandler({ store, config }) {
       console.error('[plantrip-server] envoi email impossible :', err)
       return fail(res, 500, 'mail_failed', 'Envoi de l’email impossible : réessayez dans un instant.')
     }
-    return sendJson(res, 202, { ok: true, mode: sent.mode, mailbox: sent.path })
+    // Le chemin du fichier .eml reste côté serveur : il ne sort jamais en réponse.
+    return sendJson(res, 202, { ok: true, mode: sent.mode })
   }
 
   function userAfterMagic(req, res, row) {
+    // La preuve de possession de l'email passe d'abord : elle neutralise un
+    // éventuel compte inscrit au nom de cette adresse par un tiers.
+    const existing = store.findUserByEmail(row.email)
+    if (existing) store.claimUnverifiedAccount(existing.id)
     const user = ensureMagicUser(row.email)
     store.deleteMagic(row.email)
     startSession(req, res, user.id)
@@ -330,7 +354,7 @@ export function createApiHandler({ store, config }) {
     if (req.method === 'POST' && path === '/api/auth/logout') {
       const token = cookiesOf(req)[SESSION_COOKIE]
       if (token) store.deleteSession(sha256Hex(token))
-      res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; ${cookieAttributes(req)}; Max-Age=0`)
+      res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; ${cookieAttributes(req, config)}; Max-Age=0`)
       res.writeHead(204, { 'X-Content-Type-Options': 'nosniff' })
       return res.end()
     }

@@ -135,7 +135,7 @@ describe('comptes locaux', () => {
     )
     await run(() =>
       expect(auth().changePassword({ currentPassword: 'Secret-123', newPassword: 'court' })).rejects.toThrow(
-        '6 caractères minimum',
+        '8 caractères minimum',
       ),
     )
     await run(() => auth().changePassword({ currentPassword: 'Secret-123', newPassword: 'Nouveau-456' }))

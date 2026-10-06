@@ -163,3 +163,20 @@ test.describe('espace applicatif', () => {
     await expectPageHealthy(page, issues)
   })
 })
+
+test.describe('session serveur', () => {
+  test('une session serveur expirée déconnecte l’interface au rechargement', async ({ page, context }) => {
+    const account = testAccount()
+    await page.goto('/register')
+    await page.locator('#register-email').fill(account.email)
+    await page.locator('#register-password').fill(account.password)
+    await page.getByRole('button', { name: 'Créer mon compte' }).click()
+    await page.waitForURL((url) => url.pathname === '/')
+    expect(await page.evaluate(() => localStorage.getItem('plantrip_user'))).toContain('"serverSession":true')
+
+    // Le serveur ne reconnaît plus la session (expiration, déconnexion ailleurs).
+    await context.clearCookies()
+    await page.reload()
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('plantrip_user'))).toBeNull()
+  })
+})

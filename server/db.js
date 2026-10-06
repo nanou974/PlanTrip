@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS users (
   salt TEXT,
   hash TEXT,
   params TEXT,
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  verified INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS sessions (
   token_hash TEXT PRIMARY KEY,
@@ -36,7 +37,20 @@ export function openDatabase(path) {
   if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true })
   const db = new DatabaseSync(path)
   db.exec(SCHEMA)
+  migrateVerifiedColumn(db)
   return db
+}
+
+/**
+ * Bases créées avant la colonne `verified` : un compte ouvert par lien magique
+ * a prouvé la possession de son email (vérifié) ; un compte inscrit par mot de
+ * passe ne l'a pas encore prouvée.
+ */
+function migrateVerifiedColumn(db) {
+  const columns = db.prepare('PRAGMA table_info(users)').all()
+  if (columns.some((c) => c.name === 'verified')) return
+  db.exec('ALTER TABLE users ADD COLUMN verified INTEGER NOT NULL DEFAULT 0')
+  db.exec("UPDATE users SET verified = 1 WHERE provider = 'magic'")
 }
 
 export function normalizeEmail(email) {
@@ -61,7 +75,10 @@ export class Store {
     this.db = db
     this.stmts = {
       insertUser: db.prepare(
-        'INSERT INTO users (id, email, name, provider, algo, salt, hash, params, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO users (id, email, name, provider, algo, salt, hash, params, created_at, verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      ),
+      claimAccount: db.prepare(
+        'UPDATE users SET algo = NULL, salt = NULL, hash = NULL, params = NULL, verified = 1 WHERE id = ?',
       ),
       findUserByEmail: db.prepare('SELECT * FROM users WHERE email = ?'),
       findUserById: db.prepare('SELECT * FROM users WHERE id = ?'),
@@ -100,6 +117,7 @@ export class Store {
       password?.hash ?? null,
       password ? JSON.stringify(password.params ?? {}) : null,
       createdAt,
+      provider === 'magic' ? 1 : 0,
     )
     return publicUser(this.findUserByEmail(email))
   }
@@ -125,6 +143,21 @@ export class Store {
 
   setUserPassword(id, password) {
     this.stmts.setUserPassword.run(password.algo, password.salt, password.hash, JSON.stringify(password.params ?? {}), id)
+  }
+
+  /**
+   * Le lien magique vient de prouver que la personne contrôle la boîte mail.
+   * Un compte inscrit par mot de passe sans cette preuve a pu être créé par un
+   * tiers (pré-détournement) : on supprime son mot de passe et on coupe ses
+   * sessions. Renvoie true si le compte a été repris de cette façon.
+   */
+  claimUnverifiedAccount(id) {
+    const row = this.findUserById(id)
+    if (!row || row.verified) return false
+    const hadPassword = Boolean(row.algo)
+    this.stmts.claimAccount.run(id)
+    this.deleteSessionsOf(id)
+    return hadPassword
   }
 
   setUserName(id, name) {

@@ -24,6 +24,9 @@ playwright-report/
 test-results/
 blob-report/
 
+# Configuration locale d'outil de développement (permissions larges hors dépôt)
+opencode.json
+
 # Logs
 logs/
 *.log

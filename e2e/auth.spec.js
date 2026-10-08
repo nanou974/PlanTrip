@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test'
 import { expectPageHealthy, watchPage } from './helpers.js'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
-const MAILBOX = join(ROOT, 'var', 'mailbox')
+const MAILBOX = join(ROOT, 'var', 'mailbox-e2e')
 
 /**
  * Le serveur écrit les emails envoyés en fichiers `.eml` (MAIL_MODE=file,

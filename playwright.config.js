@@ -32,6 +32,8 @@ export default defineConfig({
   webServer: {
     command: 'npm run build && node server/index.js --fresh --port 4173',
     url: `${BASE_URL}/api/health`,
+    // Base et boîte aux lettres dédiées : `--fresh` efface la base, jamais celle du site en production.
+    env: { DATABASE_PATH: 'var/plantrip-e2e.db', MAILBOX_DIR: 'var/mailbox-e2e' },
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
   },

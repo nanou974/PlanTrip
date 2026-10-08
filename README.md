@@ -5,22 +5,26 @@
 PlanTrip est une application web de préparation de voyage en français. Les voyages sont calculés et conservés **localement** dans le navigateur : aucune donnée de voyage sur un serveur, aucun traceur publicitaire. L'**authentification** (comptes, mots de passe, Magic Link) passe, elle, par le serveur fourni avec l'application — voir [Serveur et authentification](#serveur-et-authentification).
 
 - Cahier des charges : `PlanTrip-main/PlanTrip-main/README.md` *(référence locale, hors dépôt Git)*
-- Chartes graphiques : `PlanTrip-main/` *(référence locale, hors dépôt Git)* — planches sources de `src/design/`
+- Chartes graphiques : `PlanTrip-main/` *(référence locale, hors dépôt Git)* — planches sources de `src/design/` ; textes d'identité : `VISUAL_IDENTITY_GUIDELINES.md`
 
 ## Documentation projet
 
-Les documents du cahier des charges d'origine (`PlanTrip-main/`, ~24 Mo, plus l'archive
-`PlanTrip-main.zip`) sont des **références historiques conservées en local** : ils sont ignorés
-par `.gitignore` pour ne pas alourdir le dépôt, et sont donc absents d'un clone GitHub.
+Les documents du projet d'origine sont versionnés à la racine du dépôt. Ils décrivent la vision, la
+gouvernance et l'identité du projet ; ceux qui parlent de Flutter (voir les notes en tête de section)
+sont conservés comme historique. Le code Flutter est archivé dans la branche `flutter-archive`.
+Le dossier local `PlanTrip-main/` (planches sources, ~24 Mo, plus l'archive `PlanTrip-main.zip`) reste
+**ignoré par `.gitignore`** et absent d'un clone GitHub.
 
 | Document | Description |
 | --- | --- |
-| `PlanTrip-main/PlanTrip-main/README.md` | Présentation et principes fondateurs |
-| `PlanTrip-main/PlanTrip-main/VISUAL_IDENTITY_GUIDELINES.md` | Identité visuelle officielle |
-| `PlanTrip-main/PlanTrip-main/DEVBOOK.md` | Vision technique et architecture |
-| `PlanTrip-main/PlanTrip-main/ROADMAP.md` | Évolutions prévues |
-| `PlanTrip-main/PlanTrip-main/FOUNDING_PRINCIPLES.md` | Principes qui guident le projet |
-| `LICENSE` | Licence MIT (versionné) |
+| `docs/ancien-projet-flutter-README.md` | README du projet Flutter d'origine |
+| `1_START_HERE.md` | Point d'entrée de la documentation |
+| `DEVBOOK.md` | Vision technique et architecture (section Flutter : historique) |
+| `ROADMAP.md` | Évolutions prévues |
+| `FOUNDING_PRINCIPLES.md` | Principes qui guident le projet |
+| `VISUAL_IDENTITY_GUIDELINES.md` | Identité visuelle officielle |
+| `GOVERNANCE.md`, `CONTRIBUTING.md`, `ARCHITECTURAL_DECISIONS.md`, `ARCHITECTURAL_VALUES.md` | Gouvernance et décisions |
+| `LICENSE` | Licence MIT |
 
 ## Stack
 

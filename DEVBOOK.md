@@ -600,6 +600,8 @@ Il consomme les services mis à disposition par les couches applicatives.
 
 ## Flutter
 
+> **Note (octobre 2026)** : la version de PlanTrip en production est une application web (React, Vite, Tailwind, Leaflet, serveur Node.js avec SQLite). Le code Flutter décrit ci-dessous est archivé dans la branche `flutter-archive`. Cette section est conservée comme historique de la décision d'origine.
+
 Flutter est retenu comme technologie principale pour le développement des applications clientes.
 
 Les raisons de ce choix sont les suivantes :

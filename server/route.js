@@ -21,9 +21,13 @@ export const VEHICLE_ROUTING = {
   // `minAvgKph` : ORS calcule des durées de voiture ; ce véhicule ne peut pas aller plus vite que sa vitesse moyenne réelle.
   'voiture-sans-permis': { profile: 'driving-car', forceAvoid: ['highways'], minAvgKph: 42 },
   velo: { profile: 'cycling-regular' },
-  'camping-car': { profile: 'driving-hgv', restrictions: { height: 3.2, weight: 3.5 } },
-  van: { profile: 'driving-hgv', restrictions: { height: 2.5, weight: 3.5 } },
+  // cruiseKph : le profil poids lourd d'ORS suppose des vitesses de camion (~64 km/h de moyenne sur autoroute) ; un véhicule de 3,5 t maximum roule plus vite. Sur un long trajet, la durée n'est pas plus lente que cette moyenne réaliste.
+  'camping-car': { profile: 'driving-hgv', restrictions: { height: 3.2, weight: 3.5 }, cruiseKph: 80 },
+  van: { profile: 'driving-hgv', restrictions: { height: 2.5, weight: 3.5 }, cruiseKph: 85 },
 }
+
+/** En dessous de cette distance (m), la durée d'ORS (circulation urbaine comprise) est conservée telle quelle. */
+const LONG_TRIP_METERS = 100_000
 
 export function routingFor(vehicle) {
   return VEHICLE_ROUTING[vehicle] || VEHICLE_ROUTING.voiture
@@ -172,6 +176,9 @@ export function createRouteService({ config, fetchImpl = fetch }) {
     const cfg = routingFor(typeof body.vehicle === 'string' ? body.vehicle : 'voiture')
     if (cfg.minAvgKph) {
       parsed.duration = Math.max(parsed.duration, Math.round(parsed.distance / (cfg.minAvgKph / 3.6)))
+    }
+    if (cfg.cruiseKph && parsed.distance >= LONG_TRIP_METERS) {
+      parsed.duration = Math.min(parsed.duration, Math.round(parsed.distance / (cfg.cruiseKph / 3.6)))
     }
     const payload = { ...parsed, provider: 'openrouteservice', profile: built.profile }
     remember(key, payload)

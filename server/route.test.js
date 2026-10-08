@@ -154,6 +154,30 @@ describe('POST /api/route', () => {
     expect(car.duration).toBe(17000)
   })
 
+  it('camping-car : la durée longue distance n’est pas celle d’un camion (~64 km/h)', async () => {
+    orsBehavior = () => {
+      const body = orsAnswer()
+      body.features[0].properties.summary.duration = 30000 // 465 km à 56 km/h
+      return { status: 200, body }
+    }
+    const json = await (await post({ vehicle: 'camping-car', points: [{ lat: 48.8, lon: 2.3 }, { lat: 45.7, lon: 4.8 }] })).json()
+    expect(json.duration).toBe(Math.round(465000 / (80 / 3.6)))
+    const van = await (await post({ vehicle: 'van', points: [{ lat: 48.81, lon: 2.31 }, { lat: 45.71, lon: 4.81 }] })).json()
+    expect(van.duration).toBe(Math.round(465000 / (85 / 3.6)))
+  })
+
+  it('camping-car : un trajet court garde la durée d’ORS et jamais plus rapide que celle-ci', async () => {
+    orsBehavior = () => {
+      const body = orsAnswer()
+      body.features[0].properties.summary = { distance: 40000, duration: 4000 }
+      return { status: 200, body }
+    }
+    const short = await (await post({ vehicle: 'camping-car', points: [{ lat: 48.9, lon: 2.4 }, { lat: 48.6, lon: 2.1 }] })).json()
+    expect(short.duration).toBe(4000)
+    orsBehavior = () => ({ status: 200, body: orsAnswer() })
+    const fast = await (await post({ vehicle: 'camping-car', points: [{ lat: 48.82, lon: 2.32 }, { lat: 45.72, lon: 4.82 }] })).json()
+    expect(fast.duration).toBe(17000)
+  })
   it('met en cache une requête identique', async () => {
     const pts = [{ lat: 43.6, lon: 1.44 }, { lat: 43.3, lon: 5.37 }]
     await post({ vehicle: 'voiture', points: pts })

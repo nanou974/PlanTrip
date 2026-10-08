@@ -65,7 +65,8 @@ export default function Confidentialite() {
               <strong>DATAtourisme</strong> — tarifs d’hébergement relevés près de votre destination et de vos étapes de nuit.
               La demande est faite par le serveur de PlanTrip : seules des coordonnées arrondies (environ 10 km) et le type
               d’hébergement sont transmises, jamais votre adresse IP ni votre identité. Données publiées sous Licence Ouverte
-              Etalab 2.0 par les offices de tourisme et les hébergeurs.
+              Etalab 2.0 par les offices de tourisme et les hébergeurs. PlanTrip n’est ni affilié à DATAtourisme ni à ses
+              producteurs, et ces derniers n’endossent pas le service.
             </li>
             <li>
               <strong>Stay22</strong> (optionnel) — carte d’hébergements « Meilleures offres ». Elle n’est chargée qu’après

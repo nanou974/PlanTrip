@@ -702,8 +702,21 @@ export default function ResultatVoyage() {
                   <p className="text-xs text-pt-neutral/75 mt-1">
                     {LODGING_TYPES[priceType]?.plural || 'Hébergements'} : prix « à partir de » déclarés par {observedPrices.n}{' '}
                     établissements à moins de {observedPrices.radiusKm} km. Ils peuvent être périmés : vérifiez-les chez le
-                    partenaire. Source : DATAtourisme et ses producteurs (offices de tourisme), Licence Ouverte Etalab 2.0
-                    {observedPrices.updatedAt ? `, données mises à jour jusqu’au ${observedPrices.updatedAt.split('-').reverse().join('/')}` : ''}.
+                    partenaire. Source :{' '}
+                    <a href="https://www.datatourisme.fr" target="_blank" rel="noopener noreferrer" className="underline">
+                      DATAtourisme
+                    </a>{' '}
+                    et ses producteurs (offices de tourisme),{' '}
+                    <a
+                      href="https://www.etalab.gouv.fr/licence-ouverte-open-licence/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline"
+                    >
+                      Licence Ouverte Etalab 2.0
+                    </a>
+                    {observedPrices.updatedAt ? `, données mises à jour jusqu’au ${observedPrices.updatedAt.split('-').reverse().join('/')}` : ''}.{' '}
+                    PlanTrip n’est ni affilié à DATAtourisme ni soutenu par lui.
                   </p>
                 </div>
               )}

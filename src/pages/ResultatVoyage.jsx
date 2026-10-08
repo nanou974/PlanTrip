@@ -25,6 +25,7 @@ import { getTrip } from '../state/store.js'
 import OffersPanel from '../components/OffersPanel.jsx'
 import SafetyChecks from '../components/SafetyChecks.jsx'
 import DrivingPlan from '../components/DrivingPlan.jsx'
+import NavigationLinks from '../components/NavigationLinks.jsx'
 import {
   PRICED_TYPES,
   fetchLodgingPrices,
@@ -452,12 +453,7 @@ export default function ResultatVoyage() {
     max: budget.max,
     costFor: (option) => lodgingCostFor(option),
   })
-  const googleMapsUrl = hasCoords
-    ? `https://www.google.com/maps/dir/?api=1&origin=${trip.departure.lat},${trip.departure.lon}&destination=${trip.destination.lat},${trip.destination.lon}&travelmode=driving`
-    : ''
-  const wazeUrl = hasCoords
-    ? `https://www.waze.com/ul?ll=${trip.destination.lat},${trip.destination.lon}&navigate=yes`
-    : ''
+  const navPlaces = routePlaces(trip.places)
 
   const mapFilters = [
     { id: 'all', label: 'Tous', icon: 'map', count: mapAccoms.length },
@@ -869,14 +865,15 @@ export default function ResultatVoyage() {
             <Card>
               <SectionHeader title="Navigation GPS" />
               {hasCoords ? (
-                <div className="grid gap-2">
-                  <Button href={googleMapsUrl} target="_blank" rel="noreferrer" variant="primary" icon="navigation" block>
-                    Google Maps
-                  </Button>
-                  <Button href={wazeUrl} target="_blank" rel="noreferrer" variant="secondary" icon="navigation" block>
-                    Waze
-                  </Button>
-                </div>
+                <NavigationLinks
+                  departure={trip.departure}
+                  destination={trip.destination}
+                  places={navPlaces}
+                  nightStops={drivePlan?.stops || []}
+                  coordinates={route?.coordinates || []}
+                  returnTrip={Boolean(trip.returnTrip)}
+                  constrained={Boolean(trip.vehicle?.heightM || trip.vehicle?.weightT)}
+                />
               ) : (
                 <p className="text-sm text-pt-neutral/75">
                   Coordonnées manquantes : navigation GPS indisponible.

@@ -28,10 +28,10 @@ import {
   PRICED_TYPES,
   fetchLodgingPrices,
   formatObservedRange,
-  priceFromObserved,
   priceKey,
 } from '../services/lodgingPrices.js'
 import { planDriving } from '../domain/driving.js'
+import { allocateNights, interpolate, priceNights } from '../domain/nights.js'
 import { lodgingAlternatives } from '../domain/lodgingAlternatives.js'
 import { LODGING_TYPES, lodgingTypesFor, parseNightlyPrice } from '../domain/lodging.js'
 
@@ -102,6 +102,9 @@ function budgetOf(raw) {
   }
   return { max: 0, entries: [], plan: null }
 }
+
+/** Liste vide stable : évite de recalculer le budget à chaque rendu tant que les tarifs d'étape ne sont pas arrivés. */
+const NO_STOP_PRICES = []
 
 export default function ResultatVoyage() {
   const nav = useNavigate()
@@ -322,15 +325,6 @@ export default function ResultatVoyage() {
   const observedPrices = observedKey && observed.key === observedKey ? observed.data : null
 
   const nightlyReal = parseNightlyPrice(nightlyInput)
-  const accomPrice = useMemo(() => {
-    if (!effectiveAccom || !trip || nights <= 0) return 0
-    if (nightlyReal != null) return Math.round(nightlyReal * nights)
-    const rawConfort = Number(trip.profile?.confort)
-    const confort = Number.isFinite(rawConfort) ? rawConfort : 0.5
-    if (observedPrices) return Math.round(priceFromObserved(observedPrices, confort) * nights)
-    const [min, max] = effectiveAccom.priceRange
-    return Math.round((min + (max - min) * confort) * nights)
-  }, [effectiveAccom, trip, nights, nightlyReal, observedPrices])
 
   const geo = useMemo(() => estimateItinerary(itineraryPoints(trip, { withReturn: true }), avgSpeedKph), [trip, avgSpeedKph])
 
@@ -378,6 +372,42 @@ export default function ResultatVoyage() {
       stopMarkersRef.current.push(m)
     })
   }, [drivePlan, route, trip, hasCoords])
+
+  // Prix des nuits en route : tarifs relevés autour de chaque étape, pour le type d'hébergement retenu.
+  const stopsKey = (drivePlan?.stops || []).map((st) => `${st.lat},${st.lon}`).join('|')
+  const stopPricesKey = priceType && stopsKey ? `${priceType}#${stopsKey}` : ''
+  const [stopObserved, setStopObserved] = useState({ key: '', list: [] })
+  useEffect(() => {
+    if (!stopPricesKey) return undefined
+    let alive = true
+    Promise.all(
+      (drivePlan?.stops || []).map((st) =>
+        Number.isFinite(st.lat) ? fetchLodgingPrices({ lat: st.lat, lon: st.lon, type: priceType }) : Promise.resolve(null),
+      ),
+    ).then((list) => {
+      if (alive) setStopObserved({ key: stopPricesKey, list })
+    })
+    return () => {
+      alive = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stopPricesKey])
+  const stopPrices = stopObserved.key === stopPricesKey ? stopObserved.list : NO_STOP_PRICES
+
+  const nightPricing = useMemo(() => {
+    if (!effectiveAccom || !trip || nights <= 0) return null
+    const rawConfort = Number(trip.profile?.confort)
+    const confort = Number.isFinite(rawConfort) ? rawConfort : 0.5
+    const [min, max] = effectiveAccom.priceRange
+    const destNightly = observedPrices ? interpolate(observedPrices.low, observedPrices.high, confort) : interpolate(min, max, confort)
+    return priceNights({
+      allocation: allocateNights({ nights, stopCount: drivePlan?.stops?.length || 0, roundTrip: Boolean(trip.returnTrip) }),
+      stopNightly: stopPrices.map((d) => (d ? interpolate(d.low, d.high, confort) : null)),
+      destNightly,
+      userNightly: nightlyReal,
+    })
+  }, [effectiveAccom, trip, nights, observedPrices, stopPrices, drivePlan, nightlyReal])
+  const accomPrice = nightPricing?.total ?? 0
 
   const estimation = useMemo(() => {
     if (!trip || !vehicle) return null
@@ -590,7 +620,7 @@ export default function ResultatVoyage() {
             <Card>
               <SectionHeader
                 title="Hébergement"
-                subtitle={`${plural(nights, 'nuit', 'nuits')} · choisissez sur la carte ou ci-dessous`}
+                subtitle={`${plural(nights, 'nuit', 'nuits')} · choisissez votre type d’hébergement (carte ou liste) : le budget suit`}
               />
               <div className="grid gap-2">
                 {accomOptions.map((opt) => {
@@ -635,13 +665,23 @@ export default function ResultatVoyage() {
                     <span className="block text-xs font-normal text-pt-neutral/75">
                       {nightlyReal != null
                         ? 'prix saisi par vous'
-                        : observedPrices
-                          ? 'tarifs relevés près de la destination (DATAtourisme)'
+                        : observedPrices || nightPricing?.perStopKnown
+                          ? 'tarifs relevés par lieu (DATAtourisme)'
                           : 'estimation PlanTrip'}
                     </span>
                   </span>
                   <span className="text-pt-orange-ink">{formatEUR(accomPrice)}</span>
                 </div>
+              )}
+              {nights > 0 && nightPricing && nightPricing.road.length > 0 && (
+                <p className="mt-2 text-xs text-pt-neutral/75" data-testid="night-breakdown">
+                  Dont {plural(nightPricing.road.length, 'nuit', 'nuits')} en route (
+                  {nightPricing.road.map((p) => `≈ ${Math.round(p)} €`).join(', ')})
+                  {nightPricing.destination.count > 0
+                    ? ` et ${plural(nightPricing.destination.count, 'nuit', 'nuits')} sur place (≈ ${Math.round(nightPricing.destination.nightly)} € la nuit)`
+                    : ''}
+                  . Chaque nuit est chiffrée au tarif de son lieu quand il est relevé, sinon à celui de la destination.
+                </p>
               )}
               {observedPrices && (
                 <div className="mt-3 rounded-xl border border-pt-line bg-pt-cream p-3 text-sm" data-testid="observed-prices">

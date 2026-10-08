@@ -91,7 +91,7 @@ describe('résultat du voyage — tarifs relevés', () => {
     expect(box.textContent).toContain('9')
     expect(box.textContent).toContain('DATAtourisme')
     expect(box.textContent).toContain('15/09/2026')
-    expect(document.body.textContent).toContain('tarifs relevés près de la destination')
+    expect(document.body.textContent).toContain('tarifs relevés par lieu')
     // 5 nuits × 80 € (confort 0,5 → milieu de la fourchette)
     expect(document.body.textContent).toContain('400')
   })
@@ -101,5 +101,45 @@ describe('résultat du voyage — tarifs relevés', () => {
     renderResult()
     expect(await screen.findByText(/estimation PlanTrip/, {}, { timeout: 5000 })).toBeTruthy()
     expect(screen.queryByTestId('observed-prices')).toBeNull()
+  })
+
+  it('chiffre chaque nuit au tarif de son lieu : étapes en route puis destination', async () => {
+    const byLat = (lat) => (lat >= 44 ? { low: 60, high: 100 } : lat >= 41 ? { low: 40, high: 60 } : { low: 100, high: 140 })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url) => {
+        const u = String(url)
+        if (u.includes('/api/lodging-prices')) {
+          const lat = Number(new URL(u, 'http://x').searchParams.get('lat'))
+          return Promise.resolve(new Response(JSON.stringify({ ...observed, ...byLat(lat), n: 8 }), { status: 200 }))
+        }
+        if (u.includes('/api/route')) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                distance: 1270000,
+                duration: 54720,
+                coordinates: [
+                  [2.3522, 48.8566],
+                  [-3.7038, 40.4168],
+                ],
+                steps: [],
+                provider: 'openrouteservice',
+              }),
+              { status: 200 },
+            ),
+          )
+        }
+        return Promise.reject(new Error('offline'))
+      }),
+    )
+    saveTrip(draft({ profile: { economies: 0.5, paysages: 0.5, confort: 0.5 }, dates: { start: '2026-06-01', end: '2026-06-09' } }))
+    renderResult()
+    const line = await screen.findByTestId('night-breakdown', {}, { timeout: 5000 })
+    await vi.waitFor(() => expect(screen.getByTestId('night-breakdown').textContent).toContain('≈ 80 €, ≈ 50 €'), { timeout: 5000 })
+    expect(screen.getByTestId('night-breakdown').textContent).toContain('6 nuits sur place (≈ 120 € la nuit)')
+    expect(line).toBeTruthy()
+    // 80 + 50 + 6 × 120
+    expect(document.body.textContent).toContain('850')
   })
 })

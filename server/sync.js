@@ -87,7 +87,9 @@ function publicPlace(p) {
 
 /** Remplace une adresse précise par la commune : contexte, sinon les segments du nom sans chiffre. */
 export function maskedDeparture(dep) {
-  const context = String(dep?.context || '').trim()
+  const rawContext = String(dep?.context || '').trim()
+  // Un contexte qui se limite au pays n'identifie pas la commune : on se rabat alors sur le nom.
+  const context = rawContext.toLowerCase() === String(dep?.country || '').trim().toLowerCase() ? '' : rawContext
   const segments = String(dep?.name || '')
     .split(',')
     .map((s) => s.trim())

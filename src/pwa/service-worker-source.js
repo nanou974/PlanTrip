@@ -74,6 +74,8 @@ self.addEventListener('fetch', (event) => {
   // Hors origine : on laisse le navigateur aller au réseau, jamais de cache.
   if (url.origin !== self.location.origin) return;
   if (NEVER_CACHE.some((path) => url.pathname === path)) return;
+  // L'API (session, synchronisation, partages) vient toujours du réseau : jamais de réponse périmée.
+  if (url.pathname.startsWith('/api/')) return;
 
   event.respondWith(handleFetch(request));
 });

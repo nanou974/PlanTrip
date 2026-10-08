@@ -17,11 +17,12 @@ import {
   buildGpx,
   downloadFile,
   fetchRoute,
+  routeToItinerary,
   profileForVehicle,
   DEGRADED_NOTICE,
   routePoints,
 } from '../services/routing.js'
-import { getTrip } from '../state/store.js'
+import { getTrip, upsertTrip } from '../state/store.js'
 import OffersPanel from '../components/OffersPanel.jsx'
 import SafetyChecks from '../components/SafetyChecks.jsx'
 import DrivingPlan from '../components/DrivingPlan.jsx'
@@ -171,6 +172,11 @@ export default function ResultatVoyage() {
       .then((res) => {
         if (alive) {
           setRoute(res)
+          if (!res.degraded && trip.id) {
+            // Enregistre le tracé dans le voyage : synchronisation et partage en ont besoin (comme l'onglet Aperçu).
+            const fresh = getTrip(trip.id)
+            if (fresh && !(fresh.itinerary?.distanceKm > 0)) upsertTrip({ ...fresh, itinerary: routeToItinerary(res) })
+          }
           if (res.degraded) setRouteError(DEGRADED_NOTICE)
         }
       })

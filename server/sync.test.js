@@ -130,6 +130,7 @@ describe('maskedDeparture / trimPolylineAround', () => {
       'Nantes, Pays de la Loire',
     )
     expect(maskedDeparture({ name: '12', lat: 1, lon: 1 }).name).toBe('Point de départ masqué')
+    expect(maskedDeparture({ name: 'Paris, Île-de-France', country: 'France', context: 'France', lat: 48.85, lon: 2.35 }).name).toBe('Paris, Île-de-France')
   })
 
   it('ne renvoie aucun tracé sans centre valide', () => {

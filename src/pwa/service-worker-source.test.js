@@ -288,4 +288,12 @@ describe('cycle de vie (exécution réelle du script)', () => {
     expect(dispatchFetch(listeners, { url: `${ORIGIN}/api/export`, method: 'POST' }).intercepted).toBe(false)
     expect(dispatchFetch(listeners, { url: 'pas-une-url', method: 'GET' }).intercepted).toBe(false)
   })
+
+  it('ne met jamais l’API en cache (session, synchronisation, partages)', () => {
+    const { fetchImpl } = network(() => response('réseau'))
+    const { listeners } = boot(SOURCE, fetchImpl)
+    for (const path of ['/api/shares', '/api/shared/abc', '/api/auth/me', '/api/health']) {
+      expect(dispatchFetch(listeners, { url: `${ORIGIN}${path}`, method: 'GET' }).intercepted).toBe(false)
+    }
+  })
 })

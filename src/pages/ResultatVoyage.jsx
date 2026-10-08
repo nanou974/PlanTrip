@@ -23,6 +23,7 @@ import {
 } from '../services/routing.js'
 import { getTrip } from '../state/store.js'
 import OffersPanel from '../components/OffersPanel.jsx'
+import SafetyChecks from '../components/SafetyChecks.jsx'
 import DrivingPlan from '../components/DrivingPlan.jsx'
 import {
   PRICED_TYPES,
@@ -630,7 +631,11 @@ export default function ResultatVoyage() {
                     effectiveAccom?.id === opt.id && effectiveAccom?.label === opt.label
                   const rawConfort = Number(trip.profile?.confort)
                   const confort = Number.isFinite(rawConfort) ? rawConfort : 0.5
-                  const perNight = Math.round(opt.priceRange[0] + (opt.priceRange[1] - opt.priceRange[0]) * confort)
+                  const estimatedNight = Math.round(opt.priceRange[0] + (opt.priceRange[1] - opt.priceRange[0]) * confort)
+                  // Même calcul que le total : tarifs relevés par lieu quand ils existent, moyenne par nuit.
+                  const optCost = nights > 0 ? lodgingCostFor(opt) : null
+                  const observed = Boolean(optCost && (book[opt.type]?.dest || optCost.perStopKnown))
+                  const perNight = observed ? Math.round(optCost.total / nights) : estimatedNight
                   return (
                     <Card
                       as="button"
@@ -654,7 +659,9 @@ export default function ResultatVoyage() {
                       </span>
                       <span className="text-right shrink-0">
                         <span className="block font-bold text-sm text-pt-orange-ink">{formatEUR(perNight)}</span>
-                        <span className="block text-[10px] text-pt-neutral/70">/nuit · estimé</span>
+                        <span className="block text-[10px] text-pt-neutral/70">
+                          {observed ? (nights > 1 ? '/nuit en moyenne · relevé' : '/nuit · relevé') : '/nuit · estimé'}
+                        </span>
                       </span>
                     </Card>
                   )
@@ -741,6 +748,7 @@ export default function ResultatVoyage() {
                   <p className="text-sm text-pt-neutral/75">Aucun conseil pour ce véhicule.</p>
                 )}
               </div>
+              <SafetyChecks vehicleSlug={slug} />
             </Card>
           </div>
 

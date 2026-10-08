@@ -54,6 +54,19 @@ describe('DrivingPlan', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
+  it('indique la conduite de chaque journée, pas le cumul', () => {
+    // 13 h 30, équilibré : 3 journées de 4 h 30
+    const plan = planDriving({ durationSec: 13.5 * H, nights: 5, coordinates: line })
+    render(<DrivingPlan plan={plan} roundTrip={false} nights={5} accommodations={[]} accomLoading={false} vehicleSlug="voiture" />)
+    const days = screen.getAllByTestId('driving-day').map((el) => el.textContent)
+    expect(days[0]).toContain('Jour 1')
+    expect(days[0]).toContain('4 h 30')
+    expect(days[1]).toContain('Jour 2')
+    expect(days[1]).toContain('4 h 30')
+    expect(days[1]).not.toContain('9 h')
+    expect(screen.getByTestId('driving-last-day').textContent).toMatch(/Jour 3.*4 h 30/s)
+  })
+
   it('alerte quand les dates sont trop courtes', () => {
     const plan = planDriving({ durationSec: 13.5 * H, nights: 1, coordinates: line })
     render(<DrivingPlan plan={plan} roundTrip={false} nights={1} accommodations={[]} accomLoading={false} vehicleSlug="voiture" />)

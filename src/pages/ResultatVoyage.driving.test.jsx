@@ -174,6 +174,10 @@ describe('résultat du voyage — tarifs relevés', () => {
     expect(text).toMatch(/200/)
     expect(text).not.toMatch(/\b140,00/)
     expect(box).toBeTruthy()
+    // la carte du type affiche le même tarif relevé (et plus l'estimation) par nuit
+    const campingCard = screen.getAllByRole('button').find((b) => b.hasAttribute('aria-pressed') && /Camping/.test(b.textContent) && /\/nuit/.test(b.textContent))
+    expect(campingCard.textContent).toContain('relevé')
+    expect(campingCard.textContent).toMatch(/25/)
   })
 })
 

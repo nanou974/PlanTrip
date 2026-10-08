@@ -120,8 +120,9 @@ export default function DrivingPlan({ plan, roundTrip, nights, accommodations, a
                   Nuit {stop.night}
                   {name ? ` · près de ${name}` : ''}
                 </p>
-                <p className="text-xs text-pt-neutral/75">
-                  Après environ {formatDuration(stop.afterSec)} de route{roundTrip ? ' (aller ; même logique au retour)' : ''}
+                <p className="text-xs text-pt-neutral/75" data-testid="driving-day">
+                  Jour {i + 1} : environ {formatDuration(stop.afterSec - (i > 0 ? stops[i - 1].afterSec : 0))} de conduite pour y arriver
+                  {roundTrip ? ' (aller ; même logique au retour)' : ''}
                 </p>
                 {accomLoading && !near.length ? (
                   <p className="text-xs text-pt-neutral/75 mt-2">Recherche d’hébergements…</p>
@@ -169,6 +170,12 @@ export default function DrivingPlan({ plan, roundTrip, nights, accommodations, a
             )
           })}
         </ol>
+      )}
+      {stops.length > 0 && Number.isFinite(plan.legSec) && (
+        <p className="mt-3 text-sm" data-testid="driving-last-day">
+          <span className="font-semibold">Jour {days} :</span> environ {formatDuration(plan.legSec - stops[stops.length - 1].afterSec)} de
+          conduite jusqu’à la destination.
+        </p>
       )}
     </Card>
   )

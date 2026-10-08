@@ -487,4 +487,26 @@ describe('Limites par adresse (TRUST_PROXY)', () => {
       await new Promise((resolve) => srv.close(resolve))
     }
   })
+
+  it('préfère CF-Connecting-IP : un X-Forwarded-For changeant ne contourne pas la limite', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'plantrip-mail4-'))
+    const cfg = loadConfig({ DATABASE_PATH: ':memory:', MAILBOX_DIR: dir, MAIL_MODE: 'file', TRUST_PROXY: '1' }, [])
+    const srv = createApp(cfg)
+    await new Promise((resolve) => srv.listen(0, '127.0.0.1', resolve))
+    try {
+      const origin = `http://127.0.0.1:${srv.address().port}`
+      let last = 0
+      for (let i = 0; i < 16; i++) {
+        const res = await fetch(`${origin}/api/auth/magic-link`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '198.51.100.7', 'X-Forwarded-For': `203.0.113.${i + 1}` },
+          body: JSON.stringify({ email: `cf-${i}-${Date.now()}@exemple.fr` }),
+        })
+        last = res.status
+      }
+      expect(last).toBe(429)
+    } finally {
+      await new Promise((resolve) => srv.close(resolve))
+    }
+  })
 })

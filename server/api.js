@@ -103,6 +103,10 @@ function baseUrlOf(req, config) {
 
 function clientIp(req, config) {
   if (config.trustProxy) {
+    // Derrière Cloudflare : `CF-Connecting-IP` est posé (et écrasé) par Cloudflare, donc non falsifiable ;
+    // le premier élément de `X-Forwarded-For` peut, lui, être fourni par le visiteur.
+    const cf = String(req.headers['cf-connecting-ip'] || '').trim()
+    if (cf) return cf
     const fwd = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()
     if (fwd) return fwd
   }

@@ -22,17 +22,20 @@ export function pricePerNight(option, confort = 0.5) {
  * @param {number} p.nights nombre de nuits
  * @param {number} p.otherCosts total hors hébergement (carburant, péages, stationnement, activités)
  * @param {number} p.max budget de l'utilisateur
+ * @param {(option:object)=>{total:number}} [p.costFor] coût de l'hébergement pour tout le séjour d'une option, nuit par nuit
+ *   (tarif de chaque lieu) ; sans lui, prix par nuit unique × nombre de nuits
  * @returns {Array<{option:object, perNight:number, lodging:number, total:number, remaining:number, fits:boolean}>}
  *   triées de la moins chère à la plus chère ; vide s'il n'y a pas de dépassement ou pas d'option moins chère.
  */
-export function lodgingAlternatives({ options = [], current = null, currentLodging = null, confort = 0.5, nights = 0, otherCosts = 0, max = 0 }) {
+export function lodgingAlternatives({ options = [], current = null, currentLodging = null, confort = 0.5, nights = 0, otherCosts = 0, max = 0, costFor = null }) {
   if (!(max > 0) || !(nights > 0) || !Number.isFinite(currentLodging)) return []
   if (round2(otherCosts + currentLodging) <= max) return []
   return options
     .filter((o) => !(current && o.id === current.id && o.label === current.label))
     .map((option) => {
-      const perNight = pricePerNight(option, confort)
-      const lodging = perNight * nights
+      const costed = typeof costFor === 'function' ? costFor(option) : null
+      const lodging = costed && Number.isFinite(costed.total) ? costed.total : pricePerNight(option, confort) * nights
+      const perNight = costed ? Math.round(lodging / nights) : pricePerNight(option, confort)
       const total = round2(otherCosts + lodging)
       return { option, perNight, lodging, total, remaining: round2(max - total), fits: total <= max }
     })

@@ -48,4 +48,12 @@ describe('lodgingAlternatives', () => {
     expect(lodgingAlternatives({ options, current: options[0], currentLodging: 0, nights: 0, otherCosts: 100, max: 50 })).toEqual([])
     expect(lodgingAlternatives({ options, current: null, currentLodging: null, nights: 2, otherCosts: 100, max: 50 })).toEqual([])
   })
+
+  it('chiffre chaque option nuit par nuit quand costFor est fourni', () => {
+    const costFor = (o) => ({ total: { hotel: 400, airbnb: 260, camping: 90 }[o.id] })
+    const res = lodgingAlternatives({ options, current: options[0], currentLodging: 400, confort: 0.5, nights: 3, otherCosts: 100, max: 250, costFor })
+    expect(res.map((a) => a.option.id)).toEqual(['camping', 'airbnb'])
+    expect(res[0]).toMatchObject({ lodging: 90, perNight: 30, total: 190, remaining: 60, fits: true })
+    expect(res[1]).toMatchObject({ lodging: 260, perNight: 87, total: 360, fits: false })
+  })
 })

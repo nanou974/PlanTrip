@@ -28,7 +28,6 @@ import {
   PRICED_TYPES,
   fetchLodgingPrices,
   formatObservedRange,
-  priceKey,
 } from '../services/lodgingPrices.js'
 import { planDriving } from '../domain/driving.js'
 import { allocateNights, interpolate, priceNights } from '../domain/nights.js'
@@ -103,8 +102,8 @@ function budgetOf(raw) {
   return { max: 0, entries: [], plan: null }
 }
 
-/** Liste vide stable : évite de recalculer le budget à chaque rendu tant que les tarifs d'étape ne sont pas arrivés. */
-const NO_STOP_PRICES = []
+/** Valeur vide stable : évite de refaire les calculs de budget à chaque rendu tant que les tarifs ne sont pas arrivés. */
+const NO_PRICE_BOOK = {}
 
 export default function ResultatVoyage() {
   const nav = useNavigate()
@@ -116,7 +115,6 @@ export default function ResultatVoyage() {
   const [accomResult, setAccomResult] = useState({ route: null, items: [], error: false })
   const [mapFilter, setMapFilter] = useState('all')
   const [nightlyInput, setNightlyInput] = useState('')
-  const [observed, setObserved] = useState({ key: '', data: null })
   const [notice, setNotice] = useState(null)
   const mapRef = useRef(null)
   const mapInstance = useRef(null)
@@ -307,23 +305,6 @@ export default function ResultatVoyage() {
 
   const effectiveAccom = selectedAccom || defaultAccom
 
-  // Tarifs relevés (DATAtourisme) près de la destination, pour le type d'hébergement retenu.
-  const priceType = PRICED_TYPES.includes(effectiveAccom?.type) ? effectiveAccom.type : null
-  const destLat = trip?.destination?.lat
-  const destLon = trip?.destination?.lon
-  const observedKey = priceType && isGeoPoint(trip?.destination) ? priceKey(destLat, destLon, priceType) : ''
-  useEffect(() => {
-    if (!observedKey) return undefined
-    let alive = true
-    fetchLodgingPrices({ lat: destLat, lon: destLon, type: priceType }).then((data) => {
-      if (alive) setObserved({ key: observedKey, data })
-    })
-    return () => {
-      alive = false
-    }
-  }, [observedKey, destLat, destLon, priceType])
-  const observedPrices = observedKey && observed.key === observedKey ? observed.data : null
-
   const nightlyReal = parseNightlyPrice(nightlyInput)
 
   const geo = useMemo(() => estimateItinerary(itineraryPoints(trip, { withReturn: true }), avgSpeedKph), [trip, avgSpeedKph])
@@ -373,40 +354,61 @@ export default function ResultatVoyage() {
     })
   }, [drivePlan, route, trip, hasCoords])
 
-  // Prix des nuits en route : tarifs relevés autour de chaque étape, pour le type d'hébergement retenu.
+  // Tarifs relevés (DATAtourisme) : destination et étapes de nuit. Le type d'hébergement retenu est toujours
+  // relevé ; les autres types ne le sont que si un budget est fixé (ils servent aux alternatives).
+  const priceType = PRICED_TYPES.includes(effectiveAccom?.type) ? effectiveAccom.type : null
+  const destLat = trip?.destination?.lat
+  const destLon = trip?.destination?.lon
+  const hasBudget = Number(trip?.budget?.max) > 0
+  const typesToPrice = useMemo(() => {
+    const allowed = lodgingTypesFor(slug).filter((t) => PRICED_TYPES.includes(t))
+    return hasBudget ? allowed : allowed.filter((t) => t === priceType)
+  }, [slug, hasBudget, priceType])
   const stopsKey = (drivePlan?.stops || []).map((st) => `${st.lat},${st.lon}`).join('|')
-  const stopPricesKey = priceType && stopsKey ? `${priceType}#${stopsKey}` : ''
-  const [stopObserved, setStopObserved] = useState({ key: '', list: [] })
+  const bookKey = typesToPrice.length && isGeoPoint(trip?.destination) ? `${typesToPrice.join(',')}#${destLat},${destLon}#${stopsKey}` : ''
+  const [priceBook, setPriceBook] = useState({ key: '', data: NO_PRICE_BOOK })
   useEffect(() => {
-    if (!stopPricesKey) return undefined
+    if (!bookKey) return undefined
     let alive = true
+    const stops = drivePlan?.stops || []
     Promise.all(
-      (drivePlan?.stops || []).map((st) =>
-        Number.isFinite(st.lat) ? fetchLodgingPrices({ lat: st.lat, lon: st.lon, type: priceType }) : Promise.resolve(null),
-      ),
-    ).then((list) => {
-      if (alive) setStopObserved({ key: stopPricesKey, list })
+      typesToPrice.map(async (type) => {
+        const [dest, ...stopList] = await Promise.all([
+          fetchLodgingPrices({ lat: destLat, lon: destLon, type }),
+          ...stops.map((st) => (Number.isFinite(st.lat) ? fetchLodgingPrices({ lat: st.lat, lon: st.lon, type }) : Promise.resolve(null))),
+        ])
+        return [type, { dest, stops: stopList }]
+      }),
+    ).then((entries) => {
+      if (alive) setPriceBook({ key: bookKey, data: Object.fromEntries(entries) })
     })
     return () => {
       alive = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stopPricesKey])
-  const stopPrices = stopObserved.key === stopPricesKey ? stopObserved.list : NO_STOP_PRICES
+  }, [bookKey])
+  const book = priceBook.key === bookKey ? priceBook.data : NO_PRICE_BOOK
+  const observedPrices = (priceType && book[priceType]?.dest) || null
 
-  const nightPricing = useMemo(() => {
-    if (!effectiveAccom || !trip || nights <= 0) return null
-    const rawConfort = Number(trip.profile?.confort)
-    const confort = Number.isFinite(rawConfort) ? rawConfort : 0.5
-    const [min, max] = effectiveAccom.priceRange
-    const destNightly = observedPrices ? interpolate(observedPrices.low, observedPrices.high, confort) : interpolate(min, max, confort)
+  const rawConfortNight = Number(trip?.profile?.confort)
+  const confortNight = Number.isFinite(rawConfortNight) ? rawConfortNight : 0.5
+  const nightAllocation = useMemo(
+    () => allocateNights({ nights, stopCount: drivePlan?.stops?.length || 0, roundTrip: Boolean(trip?.returnTrip) }),
+    [nights, drivePlan, trip],
+  )
+  /** Coût de l'hébergement pour tout le séjour, nuit par nuit, avec les tarifs relevés du type de `option`. */
+  const lodgingCostFor = (option, userNightly = null) => {
+    const data = book[option.type]
+    const [min, max] = option.priceRange
+    const destNightly = data?.dest ? interpolate(data.dest.low, data.dest.high, confortNight) : interpolate(min, max, confortNight)
     return priceNights({
-      allocation: allocateNights({ nights, stopCount: drivePlan?.stops?.length || 0, roundTrip: Boolean(trip.returnTrip) }),
-      stopNightly: stopPrices.map((d) => (d ? interpolate(d.low, d.high, confort) : null)),
+      allocation: nightAllocation,
+      stopNightly: (data?.stops || []).map((d) => (d ? interpolate(d.low, d.high, confortNight) : null)),
       destNightly,
-      userNightly: nightlyReal,
+      userNightly,
     })
-  }, [effectiveAccom, trip, nights, observedPrices, stopPrices, drivePlan, nightlyReal])
+  }
+  const nightPricing = nights > 0 && effectiveAccom && trip ? lodgingCostFor(effectiveAccom, nightlyReal) : null
   const accomPrice = nightPricing?.total ?? 0
 
   const estimation = useMemo(() => {
@@ -439,15 +441,15 @@ export default function ResultatVoyage() {
   const remainingAmount = round2(budget.max - adjustedTotal)
 
   const accomOptions = ACCOMMODATIONS[slug] || ACCOMMODATIONS[DEFAULT_ACCOMMODATIONS]
-  const rawConfortAlt = Number(trip.profile?.confort)
   const accomAlternatives = lodgingAlternatives({
     options: accomOptions,
     current: effectiveAccom,
     currentLodging: accomPrice,
-    confort: Number.isFinite(rawConfortAlt) ? rawConfortAlt : 0.5,
+    confort: confortNight,
     nights,
     otherCosts: round2(baseTotal),
     max: budget.max,
+    costFor: (option) => lodgingCostFor(option),
   })
   const googleMapsUrl = hasCoords
     ? `https://www.google.com/maps/dir/?api=1&origin=${trip.departure.lat},${trip.departure.lon}&destination=${trip.destination.lat},${trip.destination.lon}&travelmode=driving`
@@ -821,7 +823,7 @@ export default function ResultatVoyage() {
                           <span className="flex items-center justify-between gap-3">
                             <span className="font-semibold">{alt.option.label}</span>
                             <span className="text-pt-orange-ink font-semibold">
-                              {formatEUR(alt.perNight)}/nuit · {formatEUR(alt.lodging)}
+                              ≈ {formatEUR(alt.perNight)}/nuit · {formatEUR(alt.lodging)}
                             </span>
                           </span>
                           <span className={`block text-xs mt-0.5 ${alt.fits ? 'text-pt-green-ink' : 'text-pt-danger'}`}>

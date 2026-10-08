@@ -142,4 +142,38 @@ describe('résultat du voyage — tarifs relevés', () => {
     // 80 + 50 + 6 × 120
     expect(document.body.textContent).toContain('850')
   })
+
+  it('chiffre les alternatives d’hébergement avec les mêmes tarifs relevés que le total', async () => {
+    const byType = { hotel: { low: 100, high: 140 }, apartment: { low: 60, high: 80 }, camping: { low: 20, high: 30 } }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url) => {
+        const u = String(url)
+        if (u.includes('/api/lodging-prices')) {
+          const type = new URL(u, 'http://x').searchParams.get('type')
+          return Promise.resolve(new Response(JSON.stringify({ ...observed, type, n: 8, ...byType[type] }), { status: 200 }))
+        }
+        return Promise.reject(new Error('offline'))
+      }),
+    )
+    // Trajet court (aucune nuit en route) : 8 nuits sur place, budget volontairement trop juste.
+    saveTrip(
+      draft({
+        destination: { name: 'Orléans, Centre-Val de Loire', lat: 47.9029, lon: 1.9093 },
+        profile: { economies: 0.5, paysages: 0.5, confort: 0.5 },
+        dates: { start: '2026-06-01', end: '2026-06-09' },
+        budget: 300,
+      }),
+    )
+    renderResult()
+    const box = await screen.findByTestId('accom-alternatives', {}, { timeout: 5000 })
+    await vi.waitFor(() => expect(screen.getByTestId('accom-alternatives').textContent).toContain('Camping'), { timeout: 5000 })
+    const text = screen.getByTestId('accom-alternatives').textContent
+    // camping relevé : 25 €/nuit × 8 nuits = 200 € (l'estimation seule donnerait 140 €)
+    expect(text).toContain('≈ 25')
+    expect(text).toMatch(/200/)
+    expect(text).not.toMatch(/\b140,00/)
+    expect(box).toBeTruthy()
+  })
 })
+

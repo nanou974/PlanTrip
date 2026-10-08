@@ -121,9 +121,9 @@ export function nightsBetween(start, end) {
 export function addDays(value, days) {
   const d = toDate(value)
   if (!d) return ''
-  const out = new Date(d.getTime() + Math.round(days) * 86400000)
+  const out = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate() + Math.round(days)))
   const pad = (n) => String(n).padStart(2, '0')
-  return `${out.getFullYear()}-${pad(out.getMonth() + 1)}-${pad(out.getDate())}`
+  return `${out.getUTCFullYear()}-${pad(out.getUTCMonth() + 1)}-${pad(out.getUTCDate())}`
 }
 
 export function plural(n, one, many) {

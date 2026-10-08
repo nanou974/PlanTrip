@@ -208,7 +208,7 @@ export default function TripOrganization() {
                   >
                     {task.title}
                     {task.dueDate && (
-                      <span className="mt-0.5 block text-xs text-pt-neutral/75">Échéance : {task.dueDate}</span>
+                      <span className="mt-0.5 block text-xs text-pt-neutral/75">Échéance : {formatDate(task.dueDate, { short: true })}</span>
                     )}
                   </label>
                   <Button

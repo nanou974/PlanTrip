@@ -30,7 +30,7 @@ par `.gitignore` pour ne pas alourdir le dépôt, et sont donc absents d'un clon
 | Bundler | Vite 8 (rolldown) |
 | Styles | Tailwind CSS 4.3, tokens `pt.*` déclarés via `@theme` dans `src/index.css` (Tailwind CSS 3.4 + `tailwind.config.js` historique, migré — parité visuelle vérifiée page par page) |
 | Cartographie | Leaflet 1.9 (bundlé, CDN retiré) |
-| Routage / géocodage | OSRM + Photon (OSM, public) |
+| Routage / géocodage | OpenRouteService (via `/api/route`, clé serveur) avec repli OSRM, + Photon (OSM, public) |
 | Tests | Vitest 5 + jsdom + Testing Library |
 | Hors connexion | Service worker généré par Vite + Web App Manifest |
 | Lint | oxlint |
@@ -170,7 +170,9 @@ Une session ouverte par le serveur est marquée `serverSession` ; au démarrage,
 confirme par `GET /api/auth/me` et déconnecte l'interface si le serveur répond 401 (serveur
 injoignable : l'état local est conservé).
 
-Variables d'environnement du serveur : `HOST`, `PORT` (4174), `DATABASE_PATH`
+Variables d'environnement du serveur : `ORS_API_KEY` (clé OpenRouteService ; sans elle, `/api/route` répond 503 et le navigateur bascule sur OSRM), `DATATOURISME_API_KEY` (clé gratuite DATAtourisme ; sans elle, `/api/lodging-prices` répond 503 et PlanTrip garde ses estimations d'hébergement ; obtention sur https://www.datatourisme.fr/utiliser-les-donnees/), `ORS_BASE_URL` (défaut `https://api.heigit.org/openrouteservice` ; l'ancien hôte `api.openrouteservice.org` est arrêté début novembre 2026 ; tests / instance auto-hébergée), `HOST`, `PORT` (4174), `DATABASE_PATH`
+
+Variable de compilation (navigateur) : `VITE_STAY22_AID` — identifiant partenaire Stay22 pour la carte « Meilleures offres » (optionnel ; sans lui, seuls les liens de recherche vers les partenaires s'affichent). À définir avant `npm run build`, par exemple dans un fichier `.env.production` non versionné. Les prix d'hébergement affichés par PlanTrip sont des estimations ; le voyageur saisit le prix réel de l'offre retenue.
 (`var/plantrip.db`), `MAIL_MODE` (`file`), `MAILBOX_DIR` (`var/mailbox`), `SMTP_URL`,
 `MAIL_FROM`, `MAGIC_TTL_MIN` (10), `SESSION_TTL_DAYS` (7), `PUBLIC_URL` (origine absolue des
 liens magiques, **obligatoire en production** ; sans elle, seule la boucle locale est acceptée), `TRUST_PROXY` (`1` pour faire
@@ -200,7 +202,9 @@ Les onglets se synchronisent via l'événement `storage` (`useCrossTabSync`).
 | Service | Usage | Données envoyées |
 | --- | --- | --- |
 | Photon (komoot) | recherche d'adresses/villes | terme saisi |
-| OSRM | calcul d'itinéraire | coordonnées du trajet |
+| OpenRouteService | calcul d'itinéraire adapté au véhicule (profil, évitements, gabarit) — appelé **par le serveur** (`ORS_API_KEY`), jamais par le navigateur | coordonnées du trajet, véhicule, options |
+| DATAtourisme | tarifs d'hébergement relevés (fourchette « à partir de » près de la destination et des étapes de nuit) — appelé **par le serveur** (`DATATOURISME_API_KEY`), cache 24 h, Licence Ouverte Etalab 2.0 (source et date de mise à jour affichées) | coordonnées arrondies à ~10 km, type d'hébergement |
+| OSRM | repli si le serveur ne peut pas calculer (clé absente, quota, panne) ; ignore véhicule et évitements, l'interface le signale | coordonnées du trajet |
 | Overpass (OSM) | lieux le long du trajet : restaurants, stations, aires, POI | bbox englobante du tracé |
 | OpenStreetMap | tuiles cartographiques | coordonnées visibles |
 | Google Fonts | Inter + Space Grotesk | requête navigateur |
@@ -280,7 +284,7 @@ npm run test
 - `src/state/store.test.js` — persistance et cycles de sauvegarde
 - `src/App.test.jsx` — navigation publique, app, 404, onglets de voyage
 - `src/App.offline.test.jsx` — écran rendu avec réseau injoignable : bandeau, données locales, échec explicite de la recherche, reprise en ligne
-- `src/pages/ResultatVoyage.test.jsx` — écran de résultat : modèle de voyage, hors ligne, hébergements par véhicule, repas, GPX
+- `src/pages/ResultatVoyage.test.jsx` — écran de résultat : modèle de voyage, hors ligne, hébergements par véhicule, GPX
 - `src/pwa/service-worker-source.test.js` — script du service worker **exécuté** (précache, repli de navigation, purge, cross-origin jamais intercepté)
 - `src/pwa/pwa.test.js` — manifeste, dimensions des icônes PNG, câblage `index.html` / `main.jsx`, enregistrement du service worker
 - `src/lib/connectivity.test.jsx` — état `online` / `offline` et bandeau explicite

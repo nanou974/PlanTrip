@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../App.jsx'
 import vehicles from '../data/vehicles.json'
@@ -30,12 +30,6 @@ function renderAt(path) {
 
 function bodyText() {
   return document.body.textContent || ''
-}
-
-function mealsTotal() {
-  const label = screen.getByText(/^Total repas/)
-  const spans = label.parentElement.querySelectorAll(':scope > span')
-  return Number(spans[spans.length - 1].textContent.replace(/\D/g, ''))
 }
 
 beforeEach(() => {
@@ -96,10 +90,34 @@ describe('résultat du voyage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Hébergement' }, { timeout: 5000 }),
     ).toBeTruthy()
-    expect(screen.getByText('Camping-car park')).toBeTruthy()
-    expect(screen.queryByText('Aire de parking')).toBeNull()
+    expect(screen.getByText('Aire de camping-car')).toBeTruthy()
+    expect(screen.getByText('Camping')).toBeTruthy()
+    // Un camping-car n'a ni hôtel ni appartement dans ses propositions.
+    expect(screen.queryByText('Hôtel')).toBeNull()
+    expect(screen.queryByText('Appartement / location')).toBeNull()
     expect(bodyText()).not.toContain('NaN')
     expect(bodyText()).not.toContain('[object Object]')
+  })
+
+  it('ne propose pas d’aire de camping-car à une voiture', async () => {
+    saveTrip(plannerDraft({ vehicle: { slug: 'voiture' } }))
+    renderAt('/resultat-voyage')
+
+    expect(
+      await screen.findByRole('heading', { name: 'Hébergement' }, { timeout: 5000 }),
+    ).toBeTruthy()
+    expect(screen.getByText('Hôtel')).toBeTruthy()
+    expect(screen.queryByText('Aire de camping-car')).toBeNull()
+    expect(screen.queryByText(/Aires de camping-car/)).toBeNull()
+  })
+
+  it('remplace l’estimation par le prix réel saisi', async () => {
+    saveTrip(plannerDraft({ vehicle: { slug: 'voiture' } }))
+    renderAt('/resultat-voyage')
+
+    const input = await screen.findByLabelText(/Prix réel trouvé/, {}, { timeout: 5000 })
+    fireEvent.change(input, { target: { value: '50' } })
+    expect(bodyText()).toContain('prix saisi par vous')
   })
 
   it('tient compte de l’aller-retour et des préférences de conduite', async () => {
@@ -118,17 +136,14 @@ describe('résultat du voyage', () => {
     expect(screen.getByText('Aller-retour')).toBeTruthy()
   })
 
-  it('recalcule le total repas quand on change un choix', async () => {
+  it('ne budgète pas les repas', async () => {
     saveTrip(plannerDraft())
-    const user = userEvent.setup()
     renderAt('/resultat-voyage')
 
-    await screen.findByRole('heading', { name: 'Repas du voyage' }, { timeout: 5000 })
-    const before = mealsTotal()
-    expect(before).toBeGreaterThan(0)
-
-    await user.click(screen.getAllByRole('button', { name: /Pas de petit-déjeuner/ })[0])
-    expect(mealsTotal()).toBeLessThan(before)
+    await screen.findByRole('heading', { name: 'Hébergement' }, { timeout: 5000 })
+    expect(screen.queryByRole('heading', { name: 'Repas du voyage' })).toBeNull()
+    expect(bodyText()).not.toMatch(/Total repas/)
+    expect(bodyText()).not.toMatch(/Repas \(/)
   })
 
   it('propose les actions et les liens de navigation', async () => {

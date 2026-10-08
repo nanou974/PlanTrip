@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import vehicles from '../data/vehicles.json'
+import VehicleIcon from '../components/VehicleIcon.jsx'
 
 export default function Vehicules(){
   return (
@@ -15,7 +16,7 @@ export default function Vehicules(){
           {vehicles.map(v=> (
             <Link key={v.slug} to={`/vehicules/${v.slug}`} className="p-6 bg-pt-cream rounded-2xl border border-pt-line hover:border-pt-green/30 hover:shadow-md transition-all group">
               <div className="flex items-start justify-between mb-3">
-                <span className="text-3xl">{v.icon}</span>
+                <VehicleIcon vehicle={v} className="h-14 w-20" />
                 <span className="text-xs px-2 py-1 bg-white rounded-full border border-pt-line">{v.routing.realisticSpeed}</span>
               </div>
               <h3 className="font-bold group-hover:text-pt-orange-ink">{v.name}</h3>

@@ -29,9 +29,9 @@ export const MOTIVATIONS = [
 ]
 
 export const DRIVE_TIMES = [
-  { id: 'short', label: 'Trajets courts (< 3 h/j)' },
-  { id: 'balanced', label: 'Équilibré (3–5 h/j)' },
-  { id: 'long', label: 'Conduite longue (> 5 h/j)' },
+  { id: 'short', label: 'Trajets courts (≈ 3 h/j)' },
+  { id: 'balanced', label: 'Équilibré (≈ 4 h 30/j)' },
+  { id: 'long', label: 'Conduite longue (jusqu’à 6 h/j)' },
 ]
 
 export function newTripId() {
@@ -85,6 +85,8 @@ export function createTrip(input = {}) {
     vehicle: {
       slug: input.vehicleSlug || input.vehicle?.slug || 'voiture',
       model: input.vehicleModel || '',
+      heightM: Number(input.vehicleHeightM) > 0 ? Number(input.vehicleHeightM) : null,
+      weightT: Number(input.vehicleWeightT) > 0 ? Number(input.vehicleWeightT) : null,
       customConsumption:
         input.customConsumption != null && input.customConsumption !== ''
           ? Number(input.customConsumption)
@@ -169,13 +171,19 @@ export function validateTrip(input) {
   return { ok: Object.keys(errors).length === 0, errors }
 }
 
+/** Date locale AAAA-MM-JJ (et non UTC, qui décale de 1-2 h en France). */
+export function localISODate(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
 /** Statut déduit des dates, sauf statut explicite 'done'. */
 export function deriveStatus(trip, now = new Date()) {
   if (trip?.status === 'done') return 'done'
   const start = trip?.dates?.start
   const end = trip?.dates?.end
   if (!start) return 'draft'
-  const today = now.toISOString().slice(0, 10)
+  const today = localISODate(now)
   if (end && today > end) return 'done'
   if (today >= start) return 'ongoing'
   if (trip?.itinerary?.legs?.length || trip?.budget?.max > 0) return 'ready'
@@ -214,6 +222,6 @@ export function sortTrips(trips, by = 'default') {
 }
 
 export function upcomingTrips(trips, now = new Date()) {
-  const today = now.toISOString().slice(0, 10)
+  const today = localISODate(now)
   return (trips || []).filter((t) => t.status !== 'done' && (!t.dates.end || t.dates.end >= today))
 }

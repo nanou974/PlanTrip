@@ -3,7 +3,7 @@
     "slug": "voiture",
     "name": "Voiture",
     "icon": "🚗",
-    "image": "/images/09651c38f_Car.png",
+    "image": "/images/vehicles/voiture.svg",
     "category": "car",
     "tagline": "Trajets classiques, autoroutes et optimisation énergie",
     "description": "Le véhicule polyvalent par excellence. PlanTrip calcule votre itinéraire selon les vitesses réelles du réseau français, intègre les péages et pondère le carburant à partir de votre consommation déclarée. Les zones à accès restreint et les stationnements sont signalés avant le départ.",
@@ -38,25 +38,26 @@
   },
   {
     "slug": "camping-car",
+    "gabarit": { "heightM": 3.2, "weightT": 3.5 },
     "name": "Camping-car",
     "icon": "🚐",
-    "image": "/images/6da546b9d_Camper.png",
+    "image": "/images/vehicles/camping-car.svg",
     "category": "campervan",
     "tagline": "Hauteur, poids, aires de service et vidanges",
-    "description": "Voyager avec son domicile. Le calculateur tient compte de votre hauteur et de votre poids pour écarter les ponts, tunnels et cols incompatibles, et fait basculer le budget vers les nuitées en aires et campings dès que le trajet s'allonge.",
+    "description": "Voyager avec son domicile. Le calcul d'itinéraire applique la hauteur et le poids du gabarit (jusqu'à 3,20 m et 3,5 t) pour écarter les ponts bas et les routes interdites à ce poids ; les cols ne sont pas évités. Les hébergements proposés sont des aires et des campings.",
     "seats": 4,
     "defaultConsumption": 12.0,
     "consumptionUnit": "L/100km",
     "fuel": "diesel",
     "emissions": 255,
-    "avoidTolls": true,
+    "avoidTolls": false,
     "avoidHighways": false,
     "routing": {
       "allowed": ["Routes adaptées au gabarit", "Aires de service", "Campings"],
-      "forbidden": ["Ponts trop bas", "Tunnels inaccessibles", "Cols difficiles"],
+      "forbidden": ["Ponts trop bas", "Routes interdites à ce gabarit"],
       "realisticSpeed": "90 km/h",
       "avgSpeedKph": 85,
-      "speedNote": "Vitesse adaptée au gabarit. Les cols sont évités automatiquement."
+      "speedNote": "Vitesse adaptée au gabarit. Les cols ne sont pas évités : vérifiez les pentes sur votre trajet."
     },
     "constraints": [
       { "label": "Places", "value": "2 à 6" },
@@ -69,7 +70,7 @@
       "note": "Sur un long trajet, les nuitées pèsent autant que le carburant : répartissez tôt la enveloppe hébergement."
     },
     "advice": [
-      "Renseignez votre hauteur et poids pour éviter ponts et tunnels.",
+      "L’itinéraire évite les passages trop bas ou trop lourds pour la hauteur et le poids indiqués dans votre voyage (par défaut 3,20 m et 3,5 t) : vérifiez-les sur la carte grise.",
       "Repérez les aires de service pour vidanges et eau."
     ]
   },
@@ -77,10 +78,10 @@
     "slug": "voiture-sans-permis",
     "name": "Voiture sans permis",
     "icon": "🛵",
-    "image": "/images/0b7f837fc_VSP.png",
+    "image": "/images/vehicles/voiture-sans-permis.svg",
     "category": "microcar",
-    "tagline": "45 km/h, voies rapides évitées, tourisme et lenteur",
-    "description": "La micro-circulation, sans autoroute ni péage. Le moteur recalcule les durées à 45 km/h, privilégie les routes pittoresques et repousse les étapes : c'est le véhicule du voyage lent, pas de la course.",
+    "tagline": "45 km/h, sans autoroute, tourisme et lenteur",
+    "description": "La micro-circulation, sans autoroute ni péage. Les durées sont recalculées à 45 km/h et l'itinéraire évite les autoroutes : c'est le véhicule du voyage lent, pas de la course.",
     "seats": 2,
     "defaultConsumption": 5.0,
     "consumptionUnit": "L/100km",
@@ -93,7 +94,7 @@
       "forbidden": ["Autoroutes", "Voies rapides"],
       "realisticSpeed": "45 km/h",
       "avgSpeedKph": 42,
-      "speedNote": "Les voies rapides sont automatiquement évitées."
+      "speedNote": "Les autoroutes sont évitées dans le calcul ; vérifiez les voies rapides sur votre trajet."
     },
     "constraints": [
       { "label": "Places", "value": "2" },
@@ -107,14 +108,14 @@
     },
     "advice": [
       "Profitez du paysage, le trajet prendra plus de temps.",
-      "Les voies rapides sont automatiquement évitées."
+      "Les autoroutes sont évitées dans le calcul ; vérifiez les voies rapides (routes à 2×2 voies) avant de partir."
     ]
   },
   {
     "slug": "moto",
     "name": "Moto",
     "icon": "🏍️",
-    "image": "/images/32779cbca_motorbike.png",
+    "image": "/images/vehicles/moto.svg",
     "category": "moto",
     "tagline": "Liberté sur deux roues, routes sinueuses et paysages",
     "description": "Le trajet devient le voyage. PlanTrip favorise les routes sinueuses, limite les étapes continues à deux heures et intègre le coût des équipements quand vous les ajoutez au budget.",
@@ -151,7 +152,7 @@
     "slug": "velo",
     "name": "Vélo",
     "icon": "🚲",
-    "image": "/images/116e7905d_Bicycle.png",
+    "image": "/images/vehicles/velo.svg",
     "category": "bike",
     "tagline": "Voyage lent, conscient, zéro pollution",
     "description": "Sans carburant ni péage, le budget se déplace vers la nourriture et les nuitées. Le calculateur estime 60 à 120 km par jour selon le profil, choisit les voies vertes et signale les points d'eau et les ateliers.",
@@ -176,8 +177,8 @@
       { "label": "Permis", "value": "Aucun" }
     ],
     "budget": {
-      "items": ["Restauration", "Nuitées", "Réparations"],
-      "note": "Le budget se fait en nourriture et hébergement, pas en transport."
+      "items": ["Nuitées", "Réparations", "Équipement"],
+      "note": "Le budget se fait surtout en hébergement et en entretien, pas en transport."
     },
     "advice": [
       "Vérifiez l'état de la chaîne et des freins.",
@@ -187,9 +188,10 @@
   },
   {
     "slug": "van",
+    "gabarit": { "heightM": 2.5, "weightT": 3.5 },
     "name": "Van",
     "icon": "🛻",
-    "image": "/images/61952df6c_Van.png",
+    "image": "/images/vehicles/van.svg",
     "category": "van",
     "tagline": "Compromis entre voiture et camping-car",
     "description": "La polyvalence d'une voiture avec le volume d'un utilitaire. PlanTrip applique les limites de hauteur et de poids du van, tout en conservant l'accès aux autoroutes lorsque vous le souhaitez.",
@@ -198,7 +200,7 @@
     "consumptionUnit": "L/100km",
     "fuel": "diesel",
     "emissions": 192,
-    "avoidTolls": true,
+    "avoidTolls": false,
     "avoidHighways": false,
     "routing": {
       "allowed": ["Autoroutes", "Nationales", "Départementales"],
@@ -218,7 +220,7 @@
       "note": "Consommation d'un utilitaire, souplesse d'une voiture : surveillez le poste carburant."
     },
     "advice": [
-      "Renseignez la hauteur du van pour éviter les ponts.",
+      "L’itinéraire évite les passages trop bas ou trop lourds pour la hauteur et le poids indiqués dans votre voyage (par défaut 2,50 m et 3,5 t) : vérifiez-les sur la carte grise.",
       "Planifiez vos stations-service."
     ]
   }

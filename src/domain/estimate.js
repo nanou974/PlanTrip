@@ -2,13 +2,12 @@
  * Estimations de coûts — pures, déterministes, documentées.
  * Hypothèses tarifaires France (ordres de grandeur, ajustables) :
  *   essence 1,86 €/L · diesel 1,74 €/L · péage 0,075 €/km
- *   repas 41 €/pers/jour · nuitée 65 € · activité 15 €/pers/jour · parking 8 €/jour
+ *   nuitée 65 € · activité 15 €/pers/jour · parking 8 €/jour (les repas ne sont pas budgétés)
  */
 
 export const RATES = {
   fuelPricePerLiter: { essence: 1.86, diesel: 1.74, electrique: 0.35, aucune: 0 },
   tollPerKm: 0.075,
-  mealPerDay: 41,
   activityPerDay: 15,
   parkingPerDay: 8,
   campingPerNight: 22,
@@ -25,7 +24,6 @@ export function fuelPriceFor(vehicle) {
 export function estimateTripCosts({
   vehicle,
   distanceKm = 0,
-  returnTrip = false,
   days = 1,
   nights = 0,
   travelers = 1,
@@ -35,7 +33,8 @@ export function estimateTripCosts({
   fuelPricePerLiter = null,
 } = {}) {
   const lines = []
-  const km = Math.max(0, Number(distanceKm) || 0) * (returnTrip ? 2 : 1)
+  // `distanceKm` = distance totale parcourue, retour éventuel compris.
+  const km = Math.max(0, Number(distanceKm) || 0)
   const nDays = Math.max(1, Number(days) || 1)
   const nNights = Math.max(0, Number(nights) || 0)
   const people = Math.max(1, Number(travelers) || 1)
@@ -80,16 +79,6 @@ export function estimateTripCosts({
       detail: `${nDays} j · ${RATES.parkingPerDay} €/j`,
     })
   }
-
-  // — Repas —
-  const mealRate = round2(RATES.mealPerDay * (0.75 + confort * 0.5))
-  lines.push({
-    id: 'meals',
-    label: 'Repas',
-    category: 'food',
-    amount: round2(mealRate * nDays * people),
-    detail: `${people} pers · ${nDays} j · ${mealRate} €/pers/j`,
-  })
 
   // — Hébergement —
   if (nNights > 0) {

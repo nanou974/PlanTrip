@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import vehicles from '../data/vehicles.json'
+import VehicleIcon from '../components/VehicleIcon.jsx'
 
 export default function Home(){
   return (
@@ -11,7 +12,7 @@ export default function Home(){
           </div>
           <h1 className="hero-heading text-pt-neutral mb-6">Le GPS qui s'adapte<br/><span className="text-pt-orange-ink">à votre véhicule,</span><br/>pas l'inverse.</h1>
           <p className="text-lg text-pt-neutral/80 max-w-2xl mx-auto mb-8 leading-relaxed">
-            Camping-car, moto, vélo, VSP, camion, van, randonnée... PlanTrip calcule votre itinéraire selon votre gabarit réel, votre budget et vos envies. Fini les ponts trop bas et les péages surprises.
+            Voiture, camping-car, voiture sans permis, moto, vélo et van : PlanTrip calcule votre itinéraire selon votre gabarit réel, votre budget et vos envies. Fini les ponts trop bas et les péages surprises.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/preparer-son-voyage" className="px-8 py-4 bg-pt-green text-white font-semibold rounded-xl hover:bg-pt-green-dark transition-all hover:shadow-xl">Préparer mon voyage</Link>
@@ -20,7 +21,7 @@ export default function Home(){
           <div className="mt-12 grid grid-cols-3 lg:grid-cols-6 gap-3 max-w-4xl mx-auto">
             {vehicles.slice(0,6).map(v=> (
               <div key={v.slug} className="p-4 bg-white rounded-2xl border border-pt-line text-center">
-                <div className="text-2xl mb-1">{v.icon}</div>
+                <div className="flex justify-center mb-2"><VehicleIcon vehicle={v} className="h-12 w-20" /></div>
                 <div className="text-xs font-medium">{v.name}</div>
                 <div className="text-[10px] text-pt-neutral/70">{v.routing.realisticSpeed}</div>
               </div>

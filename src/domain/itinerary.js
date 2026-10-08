@@ -73,9 +73,12 @@ export function sortPlaces(places = []) {
 }
 
 /** Départ → étapes routables (dans l’ordre) → destination. */
-export function itineraryPoints(trip) {
+export function itineraryPoints(trip, { withReturn = false } = {}) {
   if (!trip) return []
-  return [trip.departure, ...routePlaces(trip.places), trip.destination].filter(isGeoPoint)
+  const stops = routePlaces(trip.places)
+  const points = [trip.departure, ...stops, trip.destination]
+  if (withReturn && trip.returnTrip) points.push(...[...stops].reverse(), trip.departure)
+  return points.filter(isGeoPoint)
 }
 
 export function nextOrder(trip) {

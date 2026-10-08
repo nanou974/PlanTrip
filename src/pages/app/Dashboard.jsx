@@ -8,6 +8,7 @@ import TripCard from '../../components/TripCard.jsx'
 import { vehicleFor } from '../../lib/tripInfo.js'
 import { formatEUR, formatDayLabel, plural, daysBetween } from '../../domain/format.js'
 import { spentTotal, remaining } from '../../domain/budget.js'
+import { localISODate } from '../../domain/trip.js'
 
 function greeting() {
   const h = new Date().getHours()
@@ -24,7 +25,7 @@ export default function Dashboard() {
 
   const stats = useMemo(() => {
     const active = trips.filter((t) => t.status !== 'done')
-    const today = new Date().toISOString().slice(0, 10)
+    const today = localISODate()
     const upcoming = active
       .filter((t) => !t.dates?.end || t.dates.end >= today)
       .sort((a, b) => String(a.dates?.start).localeCompare(String(b.dates?.start)))
@@ -47,7 +48,7 @@ export default function Dashboard() {
   const hasDraft = Boolean(current)
   const isEmpty = trips.length === 0
   const daysToNext = stats.next
-    ? Math.max(0, daysBetween(new Date().toISOString().slice(0, 10), stats.next.dates?.start))
+    ? Math.max(0, daysBetween(localISODate(), stats.next.dates?.start))
     : null
 
   return (

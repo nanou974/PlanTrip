@@ -58,7 +58,6 @@ export default function TripBudget() {
     return estimateTripCosts({
       vehicle,
       distanceKm: Number(trip.itinerary?.distanceKm) || 0,
-      returnTrip: Boolean(trip.returnTrip),
       days: Number(trip.dates?.days) || 1,
       nights: Number(trip.dates?.nights) || 0,
       travelers: Number(trip.travelers) || 1,
@@ -216,7 +215,7 @@ export default function TripBudget() {
           </ul>
         ) : (
           <p className="mt-3 text-sm text-pt-neutral/80">
-            Définissez une enveloppe pour obtenir une répartition transport / hébergement / restauration /
+            Définissez une enveloppe pour obtenir une répartition transport / hébergement /
             activités / divers.
           </p>
         )}
@@ -261,7 +260,7 @@ export default function TripBudget() {
       <Card className="p-5 sm:p-6">
         <SectionHeader
           title={editingId ? 'Modifier la dépense' : 'Ajouter une dépense'}
-          subtitle="Carburant, péages, repas, hébergement, activités…"
+          subtitle="Carburant, péages, hébergement, activités…"
         />
         <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
           <Field label="Libellé" id="entry-label" required error={error && !form.label.trim() ? error : undefined}>

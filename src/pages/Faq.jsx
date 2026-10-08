@@ -6,8 +6,10 @@ const QUESTIONS = [
     q: 'Pourquoi éviter les ponts ?',
     a: (
       <>
-        Le gabarit de votre véhicule impose des hauteurs et des largeurs maximales. PlanTrip
-        filtre automatiquement les itinéraires incompatibles.
+        Le gabarit de votre véhicule impose des hauteurs et des poids maximaux. Pour un
+        camping-car ou un van, le calcul d’itinéraire applique la hauteur et le poids de la fiche
+        véhicule ; si le service principal est indisponible, le tracé de secours ne les applique
+        pas et PlanTrip vous le signale.
       </>
     ),
   },
@@ -15,8 +17,8 @@ const QUESTIONS = [
     q: 'Comment le budget est-il calculé ?',
     a: (
       <>
-        Carburant (consommation réelle × distance), péages, repas × voyageurs × jours,
-        hébergement et activités. Le total se met à jour à chaque choix.
+        Carburant (consommation réelle × distance), péages, stationnement, hébergement et activités.
+        Les repas ne sont pas budgétés. Le total se met à jour quand vous choisissez ou saisissez un hébergement.
       </>
     ),
   },
@@ -69,10 +71,11 @@ const QUESTIONS = [
     a: (
       <>
         Voyages, budget, documents et profil sont enregistrés dans le stockage local du
-        navigateur : aucun serveur PlanTrip ne les reçoit. Depuis <strong>Mon profil</strong>,
+        navigateur : le serveur PlanTrip ne les enregistre pas. Depuis <strong>Mon profil</strong>,
         vous exportez tout en JSON, vous réimportez une sauvegarde ou vous effacez
-        définitivement. Le calcul d'itinéraire et la recherche d'adresses appellent OSRM,
-        Photon et OpenStreetMap uniquement quand vous les utilisez — voir la{' '}
+        définitivement. Le calcul d'itinéraire transite par le serveur PlanTrip jusqu'à
+        OpenRouteService (secours : OSRM) ; la recherche d'adresses et les cartes appellent Photon et
+        OpenStreetMap, uniquement quand vous les utilisez — voir la{' '}
         <Link to="/confidentialite" className="text-pt-orange-ink font-semibold hover:underline">
           politique de confidentialité
         </Link>

@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  DEGRADED_NOTICE,
+  applyMinAverageSpeed,
   buildGpx,
   estimateRoute,
   fetchRoute,
   haversineMeters,
   instructionFor,
+  needsSpecialRouting,
   profileForVehicle,
   routePoints,
 } from './routing.js'
@@ -120,5 +123,106 @@ describe('export GPX', () => {
   it('tombe sur les points fournis sans tracé', () => {
     const gpx = buildGpx({ name: 'x', points: [paris, lyon] })
     expect(gpx.match(/<trkpt /g)).toHaveLength(2)
+  })
+})
+
+describe('fetchRoute — serveur PlanTrip puis repli OSRM', () => {
+  const serverAnswer = {
+    distance: 470000,
+    duration: 18000,
+    coordinates: [[2.35, 48.85], [4.83, 45.76]],
+    steps: [{ name: 'A6', distance: 1, duration: 1, instruction: 'Continuez sur A6' }],
+  }
+  const osrmAnswer = {
+    routes: [{ distance: 465000, duration: 16200, geometry: { coordinates: [[2.35, 48.85], [4.83, 45.76]] }, legs: [] }],
+  }
+
+  /** Simule /api/route (statut donné) puis OSRM. */
+  function stubFetch(serverStatus, serverBody = serverAnswer) {
+    const mock = vi.fn(async (url) => {
+      if (String(url) === '/api/route') {
+        return { ok: serverStatus === 200, status: serverStatus, json: async () => serverBody }
+      }
+      return { ok: true, status: 200, json: async () => osrmAnswer }
+    })
+    vi.stubGlobal('fetch', mock)
+    return mock
+  }
+
+  it('utilise le serveur et lui transmet véhicule et options', async () => {
+    const mock = stubFetch(200)
+    const route = await fetchRoute([paris, lyon], { vehicle: 'camping-car', avoidTolls: true })
+    expect(route.provider).toBe('openrouteservice')
+    expect(route.degraded).toBe(false)
+    expect(route.distance).toBe(470000)
+    expect(mock).toHaveBeenCalledTimes(1)
+    const sent = JSON.parse(mock.mock.calls[0][1].body)
+    expect(sent).toMatchObject({ vehicle: 'camping-car', avoidTolls: true, avoidHighways: false })
+    expect(sent.points).toHaveLength(2)
+  })
+
+  it('bascule sur OSRM si le serveur n’est pas configuré (503) et signale un calcul dégradé', async () => {
+    stubFetch(503, {})
+    const route = await fetchRoute([paris, lyon], { vehicle: 'camping-car' })
+    expect(route.provider).toBe('osrm')
+    expect(route.degraded).toBe(true)
+    expect(route.distance).toBe(465000)
+  })
+
+  it('repli OSRM sans avertissement pour une voiture standard sans option', async () => {
+    stubFetch(503, {})
+    const route = await fetchRoute([paris, lyon], { vehicle: 'voiture' })
+    expect(route.provider).toBe('osrm')
+    expect(route.degraded).toBe(false)
+  })
+
+  it('bascule aussi sur OSRM si le serveur est injoignable', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url) => {
+        if (String(url) === '/api/route') throw new TypeError('network')
+        return { ok: true, status: 200, json: async () => osrmAnswer }
+      }),
+    )
+    expect((await fetchRoute([paris, lyon])).provider).toBe('osrm')
+  })
+
+  it('ne bascule pas sur OSRM quand aucun itinéraire n’existe pour ce véhicule (422)', async () => {
+    const mock = stubFetch(422, {})
+    mock.mockImplementation(async () => ({ ok: false, status: 422, json: async () => ({}) }))
+    await expect(fetchRoute([paris, lyon], { vehicle: 'camping-car' })).rejects.toThrow(/Aucun itinéraire/)
+    expect(mock).toHaveBeenCalledTimes(1)
+  })
+
+  it('propage l’annulation', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw Object.assign(new Error('x'), { name: 'AbortError' }) }))
+    await expect(fetchRoute([paris, lyon])).rejects.toMatchObject({ name: 'AbortError' })
+  })
+})
+
+describe('needsSpecialRouting', () => {
+  it('voiture et moto standard : non', () => {
+    expect(needsSpecialRouting({ vehicle: 'voiture' })).toBe(false)
+    expect(needsSpecialRouting({ vehicle: 'moto' })).toBe(false)
+    expect(needsSpecialRouting({})).toBe(false)
+  })
+  it('options d’évitement ou autre véhicule : oui', () => {
+    expect(needsSpecialRouting({ vehicle: 'voiture', avoidTolls: true })).toBe(true)
+    expect(needsSpecialRouting({ vehicle: 'velo' })).toBe(true)
+    expect(needsSpecialRouting({ vehicle: 'voiture-sans-permis' })).toBe(true)
+  })
+  it('le message de secours est défini', () => {
+    expect(DEGRADED_NOTICE).toMatch(/secours/)
+  })
+})
+
+describe('applyMinAverageSpeed', () => {
+  it('rallonge la durée d’une voiture sans permis (42 km/h max)', () => {
+    // 465 km en 17 000 s (durée voiture) → au moins 465 000 / (42 / 3,6) s.
+    expect(applyMinAverageSpeed(465000, 17000, 'voiture-sans-permis')).toBe(Math.round(465000 / (42 / 3.6)))
+  })
+  it('ne raccourcit jamais une durée et ignore les autres véhicules', () => {
+    expect(applyMinAverageSpeed(1000, 99999, 'voiture-sans-permis')).toBe(99999)
+    expect(applyMinAverageSpeed(465000, 17000, 'voiture')).toBe(17000)
   })
 })

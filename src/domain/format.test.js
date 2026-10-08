@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  addDays,
   formatEUR,
   formatNumber,
   formatPercent,
@@ -110,5 +111,18 @@ describe('plural & tripDurationLabel', () => {
     expect(tripDurationLabel({ dates: { days: 3 } })).toBe('3 jours · 2 nuits')
     expect(tripDurationLabel({ dates: { days: 1 } })).toBe('1 jour')
     expect(tripDurationLabel(null)).toBe('—')
+  })
+})
+
+describe('addDays — changement d’heure', () => {
+  it('avance d’un jour civil à la bascule heure d’été → hiver', () => {
+    expect(addDays('2026-10-25', 1)).toBe('2026-10-26')
+    expect(addDays('2026-10-24', 2)).toBe('2026-10-26')
+  })
+  it('avance d’un jour civil à la bascule heure d’hiver → été', () => {
+    expect(addDays('2026-03-29', 1)).toBe('2026-03-30')
+  })
+  it('gère les fins de mois et d’année', () => {
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01')
   })
 })

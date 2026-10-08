@@ -31,6 +31,10 @@ function plantripServiceWorker() {
   }
 }
 
+// Un NODE_ENV=production hérité du système (ou d'une session) fait échouer l'environnement jsdom de Vitest
+// (« No such built-in module: node: ») : pour les tests, on impose l'environnement de test.
+if (process.env.VITEST && process.env.NODE_ENV === 'production') process.env.NODE_ENV = 'test'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), plantripServiceWorker()],

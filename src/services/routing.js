@@ -57,14 +57,108 @@ export function estimateRoute(from, to, avgSpeedKph = 90) {
   }
 }
 
+/** Itinéraire enregistré dans un voyage à partir du résultat de `fetchRoute`. */
+export function routeToItinerary(route) {
+  return {
+    distanceKm: Math.round(route.distance / 100) / 10,
+    durationSec: Math.round(route.duration),
+    polyline: route.coordinates,
+    estimated: false,
+    steps: route.steps,
+  }
+}
+
+/** Message à afficher quand le calcul de repli n'a pas pu tenir compte du véhicule ou des options. */
+export const DEGRADED_NOTICE =
+  'Calcul de secours : les options « sans péage / sans autoroute » et les contraintes du véhicule n’ont pas pu être appliquées au tracé.'
+
+/** Vrai si le trajet demande davantage qu'un itinéraire de voiture standard. */
+export function needsSpecialRouting({ vehicle, avoidTolls = false, avoidHighways = false } = {}) {
+  return Boolean(avoidTolls || avoidHighways || (vehicle && vehicle !== 'voiture' && vehicle !== 'moto'))
+}
+
+/** Vitesse moyenne maximale réaliste (km/h) des véhicules plus lents que la voiture. */
+const MAX_AVG_KPH = { 'voiture-sans-permis': 42 }
+
+/** OSRM calcule des durées de voiture : un véhicule plus lent ne peut pas arriver plus tôt. */
+export function applyMinAverageSpeed(distanceMeters, durationSec, vehicle) {
+  const kph = MAX_AVG_KPH[vehicle]
+  if (!kph || !Number.isFinite(distanceMeters)) return durationSec
+  return Math.max(durationSec, Math.round(distanceMeters / (kph / 3.6)))
+}
+
+/**
+ * Calcul via le serveur PlanTrip (OpenRouteService : profil, évitements et gabarit du véhicule).
+ * Renvoie null si le serveur ne peut pas répondre (absent, non configuré, quota, panne) :
+ * l'appelant bascule alors sur le repli OSRM. Lève une RoutingError si aucun itinéraire n'existe.
+ */
+async function fetchViaServer(points, { vehicle, avoidTolls, avoidHighways, heightM, weightT, signal }) {
+  let res
+  try {
+    res = await fetch('/api/route', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        vehicle,
+        avoidTolls: Boolean(avoidTolls),
+        avoidHighways: Boolean(avoidHighways),
+        ...(Number(heightM) > 0 ? { heightM: Number(heightM) } : {}),
+        ...(Number(weightT) > 0 ? { weightT: Number(weightT) } : {}),
+        points: points.map((p) => ({ lat: Number(p.lat), lon: Number(p.lon) })),
+      }),
+      signal,
+    })
+  } catch (err) {
+    if (err?.name === 'AbortError') throw err
+    return null
+  }
+  if (res.status === 422 || res.status === 400) {
+    throw new RoutingError('Aucun itinéraire trouvé pour ces points avec ce véhicule')
+  }
+  if (!res.ok) return null
+  let json
+  try {
+    json = await res.json()
+  } catch {
+    return null
+  }
+  if (!Array.isArray(json?.coordinates) || json.coordinates.length < 2 || !Number.isFinite(json.distance)) return null
+  return {
+    distance: json.distance,
+    duration: json.duration,
+    coordinates: json.coordinates,
+    steps: Array.isArray(json.steps) ? json.steps : [],
+    estimated: false,
+    provider: 'openrouteservice',
+    degraded: false,
+  }
+}
+
 /**
  * @param {Array<{lat:number,lon:number}>} points au moins 2 points
- * @returns {Promise<{distance:number,duration:number,coordinates:number[][],steps:Array,estimated:boolean}>}
+ * @returns {Promise<{distance:number,duration:number,coordinates:number[][],steps:Array,estimated:boolean,provider:string,degraded:boolean}>}
  */
-export async function fetchRoute(points, { profile = 'driving', signal } = {}) {
+export async function fetchRoute(
+  points,
+  { profile = 'driving', vehicle, avoidTolls = false, avoidHighways = false, heightM, weightT, signal } = {},
+) {
   const clean = (points || []).filter((p) => isCoord(p?.lon) && isCoord(p?.lat))
   if (clean.length < 2) throw new RoutingError('Moins de deux points valides')
 
+  const viaServer = await fetchViaServer(clean, { vehicle, avoidTolls, avoidHighways, heightM, weightT, signal })
+  if (viaServer) return viaServer
+
+  const fallback = await fetchViaOsrm(clean, { profile, signal })
+  return {
+    ...fallback,
+    duration: applyMinAverageSpeed(fallback.distance, fallback.duration, vehicle),
+    provider: 'osrm',
+    degraded: needsSpecialRouting({ vehicle, avoidTolls, avoidHighways }),
+  }
+}
+
+async function fetchViaOsrm(clean, { profile, signal }) {
   const path = clean.map((p) => `${Number(p.lon).toFixed(6)},${Number(p.lat).toFixed(6)}`).join(';')
   const url = `${OSRM}${profile}/${path}?overview=full&geometries=geojson&steps=true&annotations=false`
 

@@ -65,7 +65,7 @@ export function defaultTasks({ travelers = 1, returnTrip = false } = {}) {
     { title: 'Réserver le parking / la navette', category: 'vehicle' },
     { title: 'Prévoir les plantes et le courrier', category: 'home' },
     { title: 'Prévenir la banque du départ', category: 'home' },
-    { title: `Prévoir l’eau et les collines pour ${travelers > 1 ? `${travelers} voyageurs` : 'le voyage'}`, category: 'misc' },
+    { title: `Prévoir l’eau et les en-cas pour ${travelers > 1 ? `${travelers} voyageurs` : 'le voyage'}`, category: 'misc' },
   ]
   if (returnTrip) items.push({ title: 'Prévoir un arrêt retour et la fatigue de conduite', category: 'vehicle' })
   return items.map((item) => createTask(item))

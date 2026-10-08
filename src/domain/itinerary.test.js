@@ -188,3 +188,20 @@ describe('itineraryState', () => {
     )
   })
 })
+
+describe('itineraryPoints — aller-retour', () => {
+  const dep = { name: 'Paris', lat: 48.85, lon: 2.35 }
+  const dest = { name: 'Lyon', lat: 45.76, lon: 4.83 }
+  const step = { id: 'p1', name: 'Dijon', lat: 47.32, lon: 5.04, order: 1, kind: 'stop' }
+
+  it('ajoute le retour (étapes inversées puis départ) seulement si demandé', () => {
+    const t = { departure: dep, destination: dest, places: [step], returnTrip: true }
+    expect(itineraryPoints(t).map((p) => p.name)).toEqual(['Paris', 'Dijon', 'Lyon'])
+    expect(itineraryPoints(t, { withReturn: true }).map((p) => p.name)).toEqual(['Paris', 'Dijon', 'Lyon', 'Dijon', 'Paris'])
+  })
+
+  it('sans returnTrip, withReturn ne change rien', () => {
+    const t = { departure: dep, destination: dest, places: [], returnTrip: false }
+    expect(itineraryPoints(t, { withReturn: true })).toHaveLength(2)
+  })
+})

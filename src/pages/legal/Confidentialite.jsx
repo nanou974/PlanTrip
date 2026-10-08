@@ -44,18 +44,46 @@ export default function Confidentialite() {
               mot-clé de recherche, rien d’autre.
             </li>
             <li>
-              <strong>OSRM</strong> — calcul d’itinéraire routier. Les coordonnées des points de votre trajet sont
-              envoyées pour obtenir le tracé.
+              <strong>OpenRouteService</strong> (HeiGIT) — calcul d’itinéraire routier. Les coordonnées des points
+              de votre trajet, votre type de véhicule et vos options d’évitement sont envoyés au serveur PlanTrip,
+              qui les transmet à ce service pour obtenir le tracé. Le serveur PlanTrip n’enregistre pas le trajet
+              (simple mémoire temporaire pour éviter de recalculer deux fois le même).
+            </li>
+            <li>
+              <strong>OSRM</strong> — calcul d’itinéraire de secours, appelé depuis votre navigateur si le service
+              principal est indisponible. Les coordonnées des points de votre trajet sont envoyées pour obtenir le tracé.
             </li>
             <li>
               <strong>OpenStreetMap</strong> — affichage des tuiles cartographiques.
+            </li>
+            <li>
+              <strong>Overpass (OpenStreetMap)</strong> — recherche d’hébergements et de lieux le long de votre trajet.
+              Des points échantillonnés de votre itinéraire sont envoyés depuis votre navigateur, sans lien avec votre
+              identité ; un serveur de secours peut être interrogé si le premier est saturé.
+            </li>
+            <li>
+              <strong>DATAtourisme</strong> — tarifs d’hébergement relevés près de votre destination et de vos étapes de nuit.
+              La demande est faite par le serveur de PlanTrip : seules des coordonnées arrondies (environ 10 km) et le type
+              d’hébergement sont transmises, jamais votre adresse IP ni votre identité. Données publiées sous Licence Ouverte
+              Etalab 2.0 par les offices de tourisme et les hébergeurs.
+            </li>
+            <li>
+              <strong>Stay22</strong> (optionnel) — carte d’hébergements « Meilleures offres ». Elle n’est chargée qu’après
+              votre clic et peut déposer des cookies de suivi de réservation propres à ce partenaire. PlanTrip peut
+              percevoir une commission si vous réservez.
+            </li>
+            <li>
+              <strong>Liens vers Booking.com, Hotels.com, Airbnb, Campings.com, Park4night, Campercontact</strong> — de
+              simples liens : votre destination, vos dates et le nombre de voyageurs figurent dans l’adresse ouverte. Aucune
+              donnée n’est échangée avant que vous cliquiez.
             </li>
             <li>
               <strong>Google Fonts</strong> — polices Inter et Space Grotesk.
             </li>
           </ul>
           <p className="mt-3 text-sm">
-            Aucun compte, aucun cookie publicitaire, aucun traceur d’analytics n’est utilisé.
+            Aucun compte, aucun traceur d’analytics n’est utilisé. Les seuls cookies tiers possibles sont ceux de la
+            carte Stay22, uniquement si vous choisissez de l’afficher.
           </p>
         </section>
 

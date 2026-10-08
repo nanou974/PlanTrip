@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { Link, useOutletContext } from 'react-router-dom'
 import { Button, Card, EmptyState, Progress, SectionHeader, Skeleton, StatTile } from '../../../design/ui.jsx'
 import { Icon } from '../../../design/Icon.jsx'
@@ -16,7 +16,9 @@ import {
   topCategory,
   CATEGORY_LABEL,
 } from '../../../domain/budget.js'
-import { estimateItinerary, itineraryPoints, itineraryState, sortPlaces } from '../../../domain/itinerary.js'
+import { estimateItinerary, itineraryPoints, itineraryState, routePlaces, sortPlaces } from '../../../domain/itinerary.js'
+import { fetchRoute, profileForVehicle, routePoints, routeToItinerary } from '../../../services/routing.js'
+import { getTrip, upsertTrip } from '../../../state/store.js'
 import { vehicleFor } from '../../../lib/tripInfo.js'
 
 const MapView = lazy(() => import('../../../components/MapView.jsx'))
@@ -36,7 +38,58 @@ export default function TripOverview() {
   const avgSpeed = vehicle?.routing?.avgSpeedKph || 90
 
   const stored = trip.itinerary?.distanceKm > 0 ? trip.itinerary : null
-  const route = stored || estimateItinerary(itineraryPoints(trip), avgSpeed)
+
+  // Pas d'itinéraire enregistré (voyage neuf, ou tracé invalidé par « Modifier ») :
+  // on le calcule ici plutôt que d'afficher une droite à vol d'oiseau jusqu'à l'ouverture de l'onglet Itinéraire.
+  const tripRef = useRef(trip)
+  useEffect(() => {
+    tripRef.current = trip
+  })
+  const hasStored = Boolean(stored)
+  const tripId = trip.id
+  const routeSignature = JSON.stringify([
+    trip.departure,
+    trip.destination,
+    routePlaces(trip.places),
+    trip.returnTrip,
+    trip.vehicle?.slug,
+    trip.preferences?.avoidTolls,
+    trip.preferences?.avoidHighways,
+    trip.vehicle?.heightM,
+    trip.vehicle?.weightT,
+  ])
+  useEffect(() => {
+    if (hasStored) return undefined
+    const current = tripRef.current
+    const points = routePoints({
+      departure: current.departure,
+      destination: current.destination,
+      waypoints: routePlaces(current.places),
+      returnTrip: current.returnTrip,
+    })
+    if (points.length < 2) return undefined
+    const controller = new AbortController()
+    fetchRoute(points, {
+      profile: profileForVehicle(current.vehicle?.slug),
+      vehicle: current.vehicle?.slug,
+      avoidTolls: Boolean(current.preferences?.avoidTolls),
+      avoidHighways: Boolean(current.preferences?.avoidHighways),
+      heightM: current.vehicle?.heightM,
+      weightT: current.vehicle?.weightT,
+      signal: controller.signal,
+    })
+      .then((result) => {
+        const fresh = getTrip(tripId)
+        // Le voyage a pu être supprimé ou déjà calculé ailleurs entre-temps.
+        if (!fresh || fresh.itinerary?.distanceKm > 0) return
+        upsertTrip({ ...fresh, itinerary: routeToItinerary(result) })
+      })
+      .catch(() => {
+        /* repli : l'estimation directe reste affichée, marquée « À calculer » */
+      })
+    return () => controller.abort()
+  }, [hasStored, tripId, routeSignature])
+  const route = stored || estimateItinerary(itineraryPoints(trip, { withReturn: true }), avgSpeed)
   const state = itineraryState(trip)
 
   const spent = spentTotal(trip.budget)

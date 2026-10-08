@@ -6,7 +6,6 @@
 export const CATEGORIES = [
   { id: 'transport', label: 'Transport', icon: 'car', tone: 'blue' },
   { id: 'accommodation', label: 'Hébergement', icon: 'bed', tone: 'green' },
-  { id: 'food', label: 'Restauration', icon: 'utensils', tone: 'orange' },
   { id: 'activities', label: 'Activités', icon: 'star', tone: 'neutral' },
   { id: 'misc', label: 'Divers', icon: 'receipt', tone: 'neutral' },
 ]
@@ -144,12 +143,11 @@ export function suggestAllocation(max, weights = {}) {
     sejour: clamp01(weights.sejour ?? 0.5),
     confort: clamp01(weights.confort ?? 0.5),
   }
-  const base = { transport: 0.35, accommodation: 0.28, food: 0.18, activities: 0.12, misc: 0.07 }
+  const base = { transport: 0.4, accommodation: 0.33, activities: 0.15, misc: 0.12 }
   const transport = clamp01(base.transport + (w.transport - 0.5) * 0.3)
   const accommodation = clamp01(base.accommodation + (w.sejour - 0.5) * 0.25)
   const activities = clamp01(base.activities + (w.confort - 0.5) * 0.2)
-  const food = clamp01(base.food + (w.confort - 0.5) * 0.08)
-  const raw = { transport, accommodation, food, activities, misc: base.misc }
+  const raw = { transport, accommodation, activities, misc: base.misc }
   const sum = Object.values(raw).reduce((a, b) => a + b, 0)
   const plan = {}
   let acc = 0

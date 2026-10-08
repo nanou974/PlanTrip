@@ -314,3 +314,22 @@
     }
   }
 }
+
+/* Impression / PDF : pas d'en-tête fixe ni de pied de page qui recouvrent le contenu. */
+@media print {
+  header.fixed,
+  footer {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  .leaflet-control-zoom {
+    display: none !important;
+  }
+  section,
+  .rounded-2xl,
+  .rounded-3xl {
+    break-inside: avoid;
+  }
+}

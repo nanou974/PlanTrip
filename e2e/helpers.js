@@ -127,12 +127,7 @@ export async function createTrip(page, { start = '2026-06-01', end = '2026-06-05
   await page.getByLabel('Arrivée', { exact: true }).fill('Lyon')
   await page.getByRole('button', { name: /^Lyon,/ }).click()
 
-  await page
-    .locator('button')
-    .filter({ hasText: VOITURE.icon })
-    .filter({ hasText: VOITURE.name })
-    .first()
-    .click()
+  await page.getByRole('button', { name: VOITURE.name, exact: true }).click()
 
   const dates = page.locator('input[type="date"]')
   await dates.nth(0).fill(start)

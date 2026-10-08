@@ -14,7 +14,7 @@ import {
   sortPlaces,
   withRoutePlaces,
 } from '../../../domain/itinerary.js'
-import { buildGpx, downloadFile, fetchRoute, profileForVehicle, routePoints } from '../../../services/routing.js'
+import { DEGRADED_NOTICE, buildGpx, downloadFile, fetchRoute, profileForVehicle, routePoints } from '../../../services/routing.js'
 import { vehicleFor } from '../../../lib/tripInfo.js'
 import { upsertTrip } from '../../../state/store.js'
 
@@ -83,6 +83,11 @@ export default function TripItinerary() {
       try {
         const result = await fetchRoute(points, {
           profile: profileForVehicle(current.vehicle?.slug),
+          vehicle: current.vehicle?.slug,
+          avoidTolls: Boolean(current.preferences?.avoidTolls),
+          avoidHighways: Boolean(current.preferences?.avoidHighways),
+          heightM: current.vehicle?.heightM,
+          weightT: current.vehicle?.weightT,
           signal: controller.signal,
         })
         const next = {
@@ -94,7 +99,8 @@ export default function TripItinerary() {
         }
         setRoute(next)
         upsertTrip({ ...current, itinerary: toItinerary(next) })
-        setNotice('Itinéraire calculé et enregistré.')
+        if (result.degraded) setNotice(`Itinéraire enregistré. ${DEGRADED_NOTICE}`)
+        else setNotice('Itinéraire calculé et enregistré.')
       } catch (err) {
         if (err?.name === 'AbortError') return
         const estimated = estimateItinerary(points, vehicle?.routing?.avgSpeedKph || 90)

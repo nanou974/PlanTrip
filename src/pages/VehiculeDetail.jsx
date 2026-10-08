@@ -1,5 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import vehicles from '../data/vehicles.json'
+import VehicleIcon from '../components/VehicleIcon.jsx'
 
 export default function VehiculeDetail(){
   const {slug}=useParams()
@@ -11,7 +12,7 @@ export default function VehiculeDetail(){
         <div className="max-w-4xl mx-auto px-5 lg:px-8">
           <Link to="/vehicules" className="text-sm text-pt-neutral/75 hover:text-pt-orange-ink">← Tous les véhicules</Link>
           <div className="flex items-center gap-4 mt-6">
-            <span className="text-5xl">{v.icon}</span>
+            <VehicleIcon vehicle={v} className="h-20 w-28" />
             <div>
               <h1 className="text-3xl font-extrabold">{v.name}</h1>
               <p className="text-pt-neutral/80">{v.tagline}</p>

@@ -74,6 +74,33 @@ describe('draftToTrip', () => {
     expect(moved.itinerary.polyline).toEqual([])
   })
 
+  it('remet l’itinéraire à zéro quand le véhicule ou une option de tracé change', () => {
+    const created = draftToTrip(draft(), null)
+    upsertTrip({ ...created, itinerary: { distanceKm: 465, durationSec: 16200, polyline: [[2.3, 48.8]] } })
+
+    const otherVehicle = draftToTrip({ ...draft(), vehicle: { slug: 'camping-car' }, tripId: created.id }, created.id)
+    expect(otherVehicle.itinerary.distanceKm).toBe(0)
+
+    const noTolls = draftToTrip(
+      { ...draft(), preferences: { driveTime: 'balanced', avoidTolls: true }, tripId: created.id },
+      created.id,
+    )
+    expect(noTolls.itinerary.distanceKm).toBe(0)
+
+    const roundTrip = draftToTrip(
+      { ...draft(), preferences: { driveTime: 'balanced', returnTrip: true }, tripId: created.id },
+      created.id,
+    )
+    expect(roundTrip.itinerary.distanceKm).toBe(0)
+  })
+
+  it('garde l’itinéraire quand seuls le budget ou le nombre de voyageurs changent', () => {
+    const created = draftToTrip(draft(), null)
+    upsertTrip({ ...created, itinerary: { distanceKm: 465, durationSec: 16200, polyline: [[2.3, 48.8]] } })
+    const edited = draftToTrip({ ...draft(), budget: 2000, travelers: 4, tripId: created.id }, created.id)
+    expect(edited.itinerary.distanceKm).toBe(465)
+  })
+
   it('conserve le statut hors brouillon', () => {
     const created = draftToTrip(draft(), null)
     upsertTrip({ ...created, status: 'done' })

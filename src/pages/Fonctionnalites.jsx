@@ -5,7 +5,7 @@ const feats=[
   {title:"Mode économique",desc:"Réduit conso, péages, usure.",icon:"💸"},
   {title:"Mode rapide",desc:"Le plus rapide selon ton véhicule.",icon:"⚡"},
   {title:"Mode découverte",desc:"Détours et trésors cachés.",icon:"🧩"},
-  {title:"Budget temps réel",desc:"Carburant, péages, hébergement, repas.",icon:"💰"},
+  {title:"Budget temps réel",desc:"Carburant, péages, stationnement, hébergement, activités.",icon:"💰"},
   {title:"Navigation GPS",desc:"Vocale, 3D, alertes contextuelles.",icon:"📡"},
   {title:"Hors connexion",desc:"Vos voyages restent consultables et modifiables sans réseau.",icon:"📴"},
   {title:"Carnet de voyage",desc:"Photos, notes, souvenirs.",icon:"📖"},

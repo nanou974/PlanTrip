@@ -32,6 +32,10 @@ export function loadConfig(env = process.env, argv = []) {
     trustProxy: env.TRUST_PROXY === '1' || env.TRUST_PROXY === 'true',
     magicTtlMs: int(env.MAGIC_TTL_MIN, 10) * 60_000,
     sessionTtlMs: int(env.SESSION_TTL_DAYS, 7) * 86_400_000,
+    orsRetryDelayMs: env.ORS_RETRY_DELAY_MS !== undefined && Number.isFinite(Number(env.ORS_RETRY_DELAY_MS)) ? Number(env.ORS_RETRY_DELAY_MS) : 800,
+    orsApiKey: env.ORS_API_KEY ? String(env.ORS_API_KEY).trim() : null,
+    datatourismeApiKey: env.DATATOURISME_API_KEY ? String(env.DATATOURISME_API_KEY).trim() : null,
+    orsBaseUrl: env.ORS_BASE_URL ? String(env.ORS_BASE_URL).trim().replace(/\/+$/, '') : 'https://api.heigit.org/openrouteservice',
     dist: env.DIST_DIR || DIST,
   }
 }
@@ -88,7 +92,9 @@ if (invokedDirectly) {
   server.listen(config.port, config.host, () => {
     console.log(
       `PlanTrip sur http://${config.host}:${config.port} — API /api/*, base ${config.databasePath}, mail ${config.mailMode}` +
-        (config.publicUrl ? `, liens depuis ${config.publicUrl}` : ''),
+        (config.publicUrl ? `, liens depuis ${config.publicUrl}` : '') +
+        (config.orsApiKey ? ', itinéraires OpenRouteService' : ', itinéraires : ORS_API_KEY absent (repli côté navigateur)') +
+        (config.datatourismeApiKey ? ', tarifs DATAtourisme' : ', tarifs : DATATOURISME_API_KEY absent (estimation PlanTrip)'),
     )
   })
   const shutdown = () => server.close(() => process.exit(0))

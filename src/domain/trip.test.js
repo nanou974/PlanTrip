@@ -147,3 +147,10 @@ describe('statuts', () => {
     expect(TRIP_STATUSES.map((s) => s.id)).toEqual(['draft', 'ready', 'ongoing', 'done'])
   })
 })
+
+describe('deriveStatus — date locale', () => {
+  it('un voyage qui commence aujourd’hui est en cours dès 00:30 locale', () => {
+    const trip = { dates: { start: '2026-06-03', end: '2026-06-05' }, budget: { max: 100 } }
+    expect(deriveStatus(trip, new Date(2026, 5, 3, 0, 30))).toBe('ongoing')
+  })
+})

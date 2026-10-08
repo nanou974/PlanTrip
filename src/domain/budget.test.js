@@ -38,7 +38,7 @@ describe('createEntry', () => {
 describe('arhtmétique du budget', () => {
   const budget = addEntry(
     addEntry(createBudget(1000), entry({ amount: 300 })),
-    entry({ amount: 200, category: 'food' }),
+    entry({ amount: 200, category: 'activities' }),
   )
 
   it('total dépensé', () => {
@@ -46,7 +46,7 @@ describe('arhtmétique du budget', () => {
   })
 
   it('répartition par catégorie', () => {
-    expect(spentByCategory(budget)).toMatchObject({ transport: 300, food: 200, misc: 0 })
+    expect(spentByCategory(budget)).toMatchObject({ transport: 300, activities: 200, misc: 0 })
     expect(Object.keys(spentByCategory(budget)).sort()).toEqual([...CATEGORY_IDS].sort())
   })
 
@@ -75,7 +75,7 @@ describe('arhtmétique du budget', () => {
   })
 
   it('plan totalise les allocations', () => {
-    expect(plannedTotal({ plan: { transport: 100, food: 50 } })).toBe(150)
+    expect(plannedTotal({ plan: { transport: 100, activities: 50 } })).toBe(150)
     expect(plannedTotal({ plan: null })).toBe(0)
   })
 })

@@ -13,6 +13,8 @@ import {
 } from './auth.js'
 import { normalizeEmail, publicUser } from './db.js'
 import { sendMagicEmail } from './mailer.js'
+import { createRouteService } from './route.js'
+import { createLodgingPriceService } from './lodgingPrices.js'
 
 export const SESSION_COOKIE = 'pt_session'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -123,6 +125,11 @@ export function createApiHandler({ store, config }) {
   const loginIpLimiter = createRateLimiter({ max: 40, windowMs: 5 * 60_000 })
   // Inscriptions : chaque création coûte un scrypt et une ligne en base.
   const registerIpLimiter = createRateLimiter({ max: 30, windowMs: 10 * 60_000 })
+  // Les requêtes d'itinéraire consomment le quota de la clé ORS : limite par adresse.
+  const routeIpLimiter = createRateLimiter({ max: 40, windowMs: 10 * 60_000 })
+  const routeService = createRouteService({ config, fetchImpl: config.fetchImpl || fetch })
+  const priceIpLimiter = createRateLimiter({ max: 60, windowMs: 10 * 60_000 })
+  const priceService = createLodgingPriceService({ config, fetchImpl: config.fetchImpl || fetch })
 
   function startSession(req, res, userId) {
     const token = randomToken()
@@ -335,6 +342,23 @@ export function createApiHandler({ store, config }) {
     return sendJson(res, 200, { user })
   }
 
+  async function handleRoute(req, res) {
+    const body = await readBody(req)
+    // La limite par adresse ne s'applique qu'aux appels réellement envoyés à ORS (pas aux réponses en cache).
+    const ipKey = `route-ip:${clientIp(req, config)}`
+    const { status, payload } = await routeService.compute(body, { allowUpstream: () => routeIpLimiter.hit(ipKey) })
+    if (status !== 200) return fail(res, status, payload.error, payload.message)
+    return sendJson(res, 200, payload)
+  }
+
+  async function handleLodgingPrices(req, res, url) {
+    const ipKey = `price-ip:${clientIp(req, config)}`
+    const query = { lat: url.searchParams.get('lat'), lon: url.searchParams.get('lon'), type: url.searchParams.get('type') }
+    const { status, payload } = await priceService.compute(query, { allowUpstream: () => priceIpLimiter.hit(ipKey) })
+    if (status !== 200) return fail(res, status, payload.error, payload.message)
+    return sendJson(res, 200, payload)
+  }
+
   async function route(req, res) {
     const url = new URL(req.url, 'http://localhost')
     const path = url.pathname
@@ -344,6 +368,8 @@ export function createApiHandler({ store, config }) {
       if (!user) return fail(res, 401, 'no_session', 'Non connecté')
       return sendJson(res, 200, { user })
     }
+    if (req.method === 'POST' && path === '/api/route') return handleRoute(req, res)
+    if (req.method === 'GET' && path === '/api/lodging-prices') return handleLodgingPrices(req, res, url)
     if (req.method === 'POST' && path === '/api/auth/register') return handleRegister(req, res)
     if (req.method === 'POST' && path === '/api/auth/login') return handleLogin(req, res)
     if (req.method === 'POST' && path === '/api/auth/password') return handlePassword(req, res)

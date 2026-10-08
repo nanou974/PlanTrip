@@ -34,17 +34,16 @@ describe('estimateTripCosts — voiture', () => {
   it('totaux par catégorie cohérents', () => {
     const sum = Object.values(result.totals).reduce((a, b) => a + b, 0)
     expect(sum).toBeCloseTo(result.total, 2)
-    expect(result.totals.food).toBeGreaterThan(0)
+    expect(result.totals.food ?? 0).toBe(0)
+    expect(result.lines.some((l) => l.id === 'meals')).toBe(false)
     expect(result.totals.accommodation).toBeGreaterThan(0)
     expect(result.totals.activities).toBeGreaterThan(0)
   })
 
-  it('aller-retour double la distance transportée', () => {
-    const oneWay = estimateTripCosts({ vehicle: car, distanceKm: 100, days: 1, nights: 0, travelers: 1 })
-    const round = estimateTripCosts({ vehicle: car, distanceKm: 100, returnTrip: true, days: 1, nights: 0, travelers: 1 })
-    const fuelOne = oneWay.lines.find((l) => l.id === 'fuel').amount
-    const fuelRound = round.lines.find((l) => l.id === 'fuel').amount
-    expect(fuelRound).toBeCloseTo(fuelOne * 2, 2)
+  it('la distance fournie est la distance totale : aucun doublement implicite', () => {
+    const total = estimateTripCosts({ vehicle: car, distanceKm: 200, days: 1, nights: 0, travelers: 1 })
+    const ignored = estimateTripCosts({ vehicle: car, distanceKm: 200, returnTrip: true, days: 1, nights: 0, travelers: 1 })
+    expect(ignored.lines.find((l) => l.id === 'fuel').amount).toBe(total.lines.find((l) => l.id === 'fuel').amount)
   })
 })
 

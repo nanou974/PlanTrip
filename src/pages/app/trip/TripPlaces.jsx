@@ -46,12 +46,24 @@ export default function TripPlaces() {
   const totalDays = Math.max(1, Number(trip.dates?.days) || 1)
   const hasRoute = routePolyline(trip).length >= 2
 
-  useEffect(() => () => abortRef.current?.abort(), [])
+  const noticeTimer = useRef(null)
+  useEffect(
+    () => () => {
+      abortRef.current?.abort()
+      clearTimeout(noticeTimer.current)
+    },
+    [],
+  )
+
+  function flash(message) {
+    setNotice(message)
+    clearTimeout(noticeTimer.current)
+    noticeTimer.current = setTimeout(() => setNotice(''), 2500)
+  }
 
   function commit(next, message = '') {
     upsertTrip({ ...trip, places: next })
-    if (message) setNotice(message)
-    setTimeout(() => setNotice(''), 2500)
+    if (message) flash(message)
   }
 
   function patch(placeId, patch) {
@@ -234,10 +246,15 @@ export default function TripPlaces() {
                   <label className="text-sm">
                     <span className="field-label">Jour</span>
                     <SelectInput
-                      value={String(place.day || 1)}
+                      value={place.day >= 1 && place.day <= totalDays ? String(place.day) : ''}
                       onChange={(e) => patch(place.id, { day: Number(e.target.value) })}
                       aria-label={`Jour de ${place.name}`}
                     >
+                      {!(place.day >= 1 && place.day <= totalDays) && (
+                        <option value="" disabled>
+                          Hors séjour
+                        </option>
+                      )}
                       {Array.from({ length: totalDays }, (_, i) => (
                         <option key={i + 1} value={String(i + 1)}>
                           Jour {i + 1}
@@ -263,7 +280,7 @@ export default function TripPlaces() {
                     size="sm"
                     icon={isInLibrary(place.id) ? 'check' : 'heart'}
                     onClick={() => {
-                      if (isInLibrary(place.id)) return setNotice('Déjà dans vos favoris')
+                      if (isInLibrary(place.id)) return flash('Déjà dans vos favoris')
                       addToLibrary({
                         id: place.id,
                         name: place.name,
@@ -272,8 +289,7 @@ export default function TripPlaces() {
                         context: place.context,
                         tripId: trip.id,
                       })
-                      setNotice('Ajouté à vos lieux favoris')
-                      setTimeout(() => setNotice(''), 2500)
+                      flash('Ajouté à vos lieux favoris')
                     }}
                   >
                     Favori

@@ -189,7 +189,13 @@ export default function TripDocuments() {
                     size="sm"
                     icon="trash"
                     aria-label={`Supprimer ${doc.title}`}
-                    onClick={() => commit(documents.filter((d) => d.id !== doc.id))}
+                    onClick={() => {
+                      if (editingId === doc.id) {
+                        setEditingId(null)
+                        setForm(EMPTY_FORM)
+                      }
+                      commit(documents.filter((d) => d.id !== doc.id))
+                    }}
                   />
                 </div>
               </li>

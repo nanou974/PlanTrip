@@ -9,6 +9,7 @@ import { formatDuration, formatEUR, formatNumber, plural, tripDurationLabel } fr
 import { round2 } from '../domain/budget.js'
 import { estimateTripCosts } from '../domain/estimate.js'
 import { estimateItinerary, isGeoPoint, itineraryPoints, routePlaces } from '../domain/itinerary.js'
+import { searchAccommodations } from '../services/places.js'
 import { vehicleFor, vehicleIcon } from '../lib/tripInfo.js'
 import { labelMarker } from '../lib/leaflet-a11y.js'
 import { useOnlineStatus } from '../lib/online.js'
@@ -17,161 +18,63 @@ import {
   downloadFile,
   fetchRoute,
   profileForVehicle,
+  DEGRADED_NOTICE,
   routePoints,
 } from '../services/routing.js'
 import { getTrip } from '../state/store.js'
+import OffersPanel from '../components/OffersPanel.jsx'
+import DrivingPlan from '../components/DrivingPlan.jsx'
+import {
+  PRICED_TYPES,
+  fetchLodgingPrices,
+  formatObservedRange,
+  priceFromObserved,
+  priceKey,
+} from '../services/lodgingPrices.js'
+import { planDriving } from '../domain/driving.js'
+import { lodgingAlternatives } from '../domain/lodgingAlternatives.js'
+import { LODGING_TYPES, lodgingTypesFor, parseNightlyPrice } from '../domain/lodging.js'
 
-const MEAL_TYPES = {
-  'petit-dejeuner': {
-    label: 'Petit-déjeuner',
-    icon: 'coffee',
-    options: [
-      { id: 'none', label: 'Pas de petit-déjeuner', perPerson: 0 },
-      { id: 'cafe-croissant', label: 'Café + croissant', perPerson: 4 },
-      { id: 'boulangerie-pdj', label: 'Boulangerie complet', perPerson: 6 },
-      { id: 'hotel-pdj', label: 'Petit-déj hôtel', perPerson: 10 },
-    ],
-  },
-  dejeuner: {
-    label: 'Déjeuner',
-    icon: 'utensils',
-    options: [
-      { id: 'none', label: 'Pas de déjeuner', perPerson: 0 },
-      { id: 'boulangerie', label: 'Boulangerie sandwich', perPerson: 5 },
-      { id: 'pique-nique', label: 'Pique-nique', perPerson: 7 },
-      { id: 'kebab', label: 'Kebab / Wrap', perPerson: 10 },
-      { id: 'fast-food', label: 'Fast-food', perPerson: 12 },
-      { id: 'restaurant', label: 'Restaurant', perPerson: 18 },
-    ],
-  },
-  diner: {
-    label: 'Dîner',
-    icon: 'utensils',
-    options: [
-      { id: 'none', label: 'Pas de dîner', perPerson: 0 },
-      { id: 'pique-nique', label: 'Pique-nique / Froid', perPerson: 7 },
-      { id: 'cuisine-bord', label: 'Cuisine à bord', perPerson: 8 },
-      { id: 'kebab', label: 'Kebab / Pizza', perPerson: 10 },
-      { id: 'restaurant', label: 'Restaurant', perPerson: 18 },
-    ],
-  },
-}
-
+/**
+ * Options d'hébergement par véhicule. `type` renvoie à LODGING_TYPES ; `priceRange` est une
+ * fourchette indicative PlanTrip (€/nuit), remplacée par le prix réel saisi par le voyageur.
+ */
 const ACCOMMODATIONS = {
   voiture: [
-    { id: 'hotel', label: 'Hôtel', icon: 'bed', priceRange: [60, 120], desc: 'Confort, parking, petit-déjeuner' },
-    { id: 'airbnb', label: 'Airbnb / Appartement', icon: 'home', priceRange: [45, 90], desc: 'Cuisine, espace, autonomie' },
-    { id: 'camping', label: 'Camping', icon: 'tent', priceRange: [10, 25], desc: 'Nature, économique, plein air' },
+    { id: 'hotel', type: 'hotel', label: 'Hôtel', icon: 'bed', priceRange: [60, 120], desc: 'Confort, parking, petit-déjeuner' },
+    { id: 'apartment', type: 'apartment', label: 'Appartement / location', icon: 'home', priceRange: [45, 90], desc: 'Cuisine, espace, autonomie' },
+    { id: 'camping', type: 'camping', label: 'Camping', icon: 'tent', priceRange: [10, 25], desc: 'Nature, économique, plein air' },
   ],
   'camping-car': [
-    { id: 'ccpark', label: 'Camping-car park', icon: 'parking', priceRange: [10, 20], desc: 'Place spécifique, eau, vidange' },
-    { id: 'camping', label: 'Camping', icon: 'tent', priceRange: [10, 25], desc: 'Nature, emplacement aménagé' },
-    { id: 'airbnb', label: 'Airbnb', icon: 'home', priceRange: [45, 80], desc: 'Pour une nuit en dur' },
+    { id: 'ccpark', type: 'aire', label: 'Aire de camping-car', icon: 'parking', priceRange: [10, 20], desc: 'Place spécifique, eau, vidange' },
+    { id: 'camping', type: 'camping', label: 'Camping', icon: 'tent', priceRange: [10, 25], desc: 'Nature, emplacement aménagé' },
   ],
   'voiture-sans-permis': [
-    { id: 'hotel', label: 'Hôtel', icon: 'bed', priceRange: [50, 90], desc: 'Confort accessible' },
-    { id: 'airbnb', label: 'Airbnb', icon: 'home', priceRange: [35, 70], desc: 'Autonomie, petit budget' },
-    { id: 'camping', label: 'Camping', icon: 'tent', priceRange: [8, 20], desc: 'Économique, plein air' },
+    { id: 'hotel', type: 'hotel', label: 'Hôtel', icon: 'bed', priceRange: [50, 90], desc: 'Confort accessible' },
+    { id: 'apartment', type: 'apartment', label: 'Appartement / location', icon: 'home', priceRange: [35, 70], desc: 'Autonomie, petit budget' },
+    { id: 'camping', type: 'camping', label: 'Camping', icon: 'tent', priceRange: [8, 20], desc: 'Économique, plein air' },
   ],
   moto: [
-    { id: 'hotel', label: 'Hôtel', icon: 'bed', priceRange: [55, 100], desc: 'Sécurité moto, garage' },
-    { id: 'airbnb', label: 'Airbnb', icon: 'home', priceRange: [40, 80], desc: 'Flexibilité' },
+    { id: 'hotel', type: 'hotel', label: 'Hôtel', icon: 'bed', priceRange: [55, 100], desc: 'Sécurité moto, garage' },
+    { id: 'apartment', type: 'apartment', label: 'Appartement / location', icon: 'home', priceRange: [40, 80], desc: 'Flexibilité' },
+    { id: 'camping', type: 'camping', label: 'Camping', icon: 'tent', priceRange: [8, 20], desc: 'Économique, plein air' },
   ],
   velo: [
-    { id: 'camping', label: 'Camping', icon: 'tent', priceRange: [8, 18], desc: 'Proche de la piste' },
-    { id: 'hotel', label: 'Hôtel', icon: 'bed', priceRange: [50, 90], desc: 'Douche et repos' },
+    { id: 'camping', type: 'camping', label: 'Camping', icon: 'tent', priceRange: [8, 18], desc: 'Proche de la piste' },
+    { id: 'hotel', type: 'hotel', label: 'Hôtel', icon: 'bed', priceRange: [50, 90], desc: 'Douche et repos' },
   ],
   van: [
-    { id: 'camping', label: 'Camping / Aire', icon: 'tent', priceRange: [10, 25], desc: 'Emplacement van aménagé' },
-    { id: 'parking', label: 'Aire de parking', icon: 'parking', priceRange: [0, 10], desc: 'Stationnement nuit' },
-    { id: 'airbnb', label: 'Airbnb', icon: 'home', priceRange: [40, 75], desc: 'Pour une nuit en dur' },
+    { id: 'ccpark', type: 'aire', label: 'Aire de camping-car / van', icon: 'parking', priceRange: [0, 15], desc: 'Stationnement de nuit, services' },
+    { id: 'camping', type: 'camping', label: 'Camping', icon: 'tent', priceRange: [10, 25], desc: 'Emplacement van aménagé' },
   ],
 }
 
 const DEFAULT_ACCOMMODATIONS = 'voiture'
 
-const ACCOM_TYPE_LABEL = {
-  hotel: 'Hôtel',
-  camping: 'Camping',
-  airbnb: 'Airbnb',
-}
-
-const ACCOM_TYPE_COLOR = {
-  hotel: '#1E3A5F',
-  camping: '#2E7D5B',
-  airbnb: '#B4341F',
-}
-
-const CHOICE_LINE_IDS = ['meals', 'accommodation']
-
-function computeMealSlots(departureTime, arrivalTime, days) {
-  const slots = []
-  const depH = parseInt(String(departureTime || '08:00').split(':')[0], 10) || 0
-  const arrH = parseInt(String(arrivalTime || '18:00').split(':')[0], 10) || 0
-  for (let d = 0; d < days; d += 1) {
-    const isFirst = d === 0
-    const isLast = d === days - 1
-    const daySlots = []
-    if (isFirst) {
-      if (depH < 8) daySlots.push('petit-dejeuner')
-      if (depH < 12) daySlots.push('dejeuner')
-      if (days > 1) daySlots.push('diner')
-      else if (arrH >= 19) daySlots.push('diner')
-    } else if (isLast) {
-      daySlots.push('petit-dejeuner')
-      if (arrH >= 13) daySlots.push('dejeuner')
-      if (arrH >= 20) daySlots.push('diner')
-    } else {
-      daySlots.push('petit-dejeuner', 'dejeuner', 'diner')
-    }
-    if (daySlots.length) slots.push({ day: d + 1, meals: daySlots })
-  }
-  return slots
-}
-
-/**
- * Hébergements le long du tracé — Overpass (OSM), réseau requis.
- * @returns {Promise<Array|null>} `null` = service injoignable (hors connexion)
- */
-async function fetchAccommodations(coords) {
-  if (!coords || coords.length < 2) return []
-  const lats = coords.map((c) => c[1])
-  const lons = coords.map((c) => c[0])
-  const south = Math.min(...lats) - 0.1
-  const north = Math.max(...lats) + 0.1
-  const west = Math.min(...lons) - 0.1
-  const east = Math.max(...lons) + 0.1
-  const bbox = `${south},${west},${north},${east}`
-  const query = `[out:json][timeout:10];(node["tourism"~"hotel|hostel|motel|camp_site|caravan_site|apartment"](${bbox}););out body;`
-  try {
-    const r = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      body: `data=${encodeURIComponent(query)}`,
-    })
-    const j = await r.json()
-    return j.elements.map((el) => {
-      const tags = el.tags || {}
-      let type = 'other'
-      if (tags.tourism === 'hotel' || tags.tourism === 'hostel' || tags.tourism === 'motel') type = 'hotel'
-      else if (tags.tourism === 'camp_site' || tags.tourism === 'caravan_site') type = 'camping'
-      else if (tags.tourism === 'apartment') type = 'airbnb'
-      return {
-        id: el.id,
-        name: tags.name || tags['name:fr'] || 'Sans nom',
-        lat: el.lat,
-        lon: el.lon,
-        type,
-        stars: tags.stars || null,
-        website: tags.website || null,
-      }
-    })
-  } catch {
-    return null
-  }
-}
+const CHOICE_LINE_IDS = ['accommodation']
 
 function accomColor(type) {
-  return ACCOM_TYPE_COLOR[type] || '#2B2F33'
+  return LODGING_TYPES[type]?.color || '#2B2F33'
 }
 
 function placeLabel(place) {
@@ -207,13 +110,15 @@ export default function ResultatVoyage() {
   const [routeError, setRouteError] = useState('')
   const [loading, setLoading] = useState(true)
   const [selectedAccom, setSelectedAccom] = useState(null)
-  const [mealChoices, setMealChoices] = useState({})
   const [accomResult, setAccomResult] = useState({ route: null, items: [], error: false })
   const [mapFilter, setMapFilter] = useState('all')
+  const [nightlyInput, setNightlyInput] = useState('')
+  const [observed, setObserved] = useState({ key: '', data: null })
   const [notice, setNotice] = useState(null)
   const mapRef = useRef(null)
   const mapInstance = useRef(null)
   const markersRef = useRef([])
+  const stopMarkersRef = useRef([])
   const online = useOnlineStatus()
 
   const budget = budgetOf(trip?.budget)
@@ -251,9 +156,19 @@ export default function ResultatVoyage() {
   useEffect(() => {
     if (!trip || !canFetch) return undefined
     let alive = true
-    fetchRoute(tripPoints, { profile: profileForVehicle(slug, vehicle?.category) })
+    fetchRoute(tripPoints, {
+      profile: profileForVehicle(slug, vehicle?.category),
+      vehicle: slug,
+      avoidTolls: Boolean(trip.preferences?.avoidTolls),
+      avoidHighways: Boolean(trip.preferences?.avoidHighways),
+      heightM: trip.vehicle?.heightM,
+      weightT: trip.vehicle?.weightT,
+    })
       .then((res) => {
-        if (alive) setRoute(res)
+        if (alive) {
+          setRoute(res)
+          if (res.degraded) setRouteError(DEGRADED_NOTICE)
+        }
       })
       .catch(() => {
         if (alive) setRouteError('Calcul en ligne indisponible : itinéraire estimé à vol d’oiseau.')
@@ -269,7 +184,7 @@ export default function ResultatVoyage() {
   useEffect(() => {
     if (!route) return undefined
     let alive = true
-    fetchAccommodations(route.coordinates).then((items) => {
+    searchAccommodations(route.coordinates).then((items) => {
       if (alive) setAccomResult({ route, items: items || [], error: items === null })
     })
     return () => {
@@ -277,9 +192,10 @@ export default function ResultatVoyage() {
     }
   }, [route])
 
+  const allowedLodging = useMemo(() => lodgingTypesFor(slug), [slug])
   const mapAccoms = useMemo(
-    () => (accomResult.route === route ? accomResult.items : []),
-    [accomResult, route],
+    () => (accomResult.route === route ? accomResult.items.filter((a) => allowedLodging.includes(a.type)) : []),
+    [accomResult, route, allowedLodging],
   )
   const accomLoading = Boolean(route) && accomResult.route !== route
   const accomError = Boolean(accomResult.error)
@@ -353,67 +269,32 @@ export default function ResultatVoyage() {
       const color = accomColor(accom.type)
       const markerIcon = L.divIcon({
         className: '',
-        html: `<div style="width:20px;height:20px;background:${color};border:3px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.35);cursor:pointer"></div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
+        html: `<div style="width:14px;height:14px;background:${color};border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.35);cursor:pointer"></div>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
       })
       const m = L.marker([accom.lat, accom.lon], { icon: markerIcon })
-      const typeLabel = ACCOM_TYPE_LABEL[accom.type] || 'Autre'
+      const typeLabel = LODGING_TYPES[accom.type]?.label || 'Autre'
       labelMarker(m, `${typeLabel} : ${accom.name}`)
       m.addTo(mapInstance.current)
       m.bindPopup(`<b>${escapeHtml(accom.name)}</b><br>${escapeHtml(typeLabel)}${
         accom.stars ? ` • ${escapeHtml(accom.stars)}★` : ''
       }`)
       m.on('click', () => {
-        const priceGuess = accom.type === 'hotel' ? 70 : accom.type === 'camping' ? 15 : 50
         setSelectedAccom({
           id: `map-${accom.id}`,
+          type: accom.type,
           label: accom.name,
-          icon: 'bed',
-          priceRange: [priceGuess - 10, priceGuess + 10],
+          icon: LODGING_TYPES[accom.type]?.icon || 'bed',
+          priceRange: LODGING_TYPES[accom.type]?.range || [40, 80],
           desc: `${typeLabel} trouvé sur la carte`,
           mapAccom: accom,
         })
+        setNightlyInput('')
       })
       markersRef.current.push(m)
     })
   }, [mapAccoms, mapFilter])
-
-  const mealSlots = useMemo(
-    () => (trip ? computeMealSlots(trip.departureTime, trip.arrivalTime, days) : []),
-    [trip, days],
-  )
-
-  const mealDefaults = useMemo(() => {
-    const init = {}
-    mealSlots.forEach((slot) => {
-      slot.meals.forEach((mType) => {
-        const key = `${slot.day}:${mType}`
-        const opts = MEAL_TYPES[mType]?.options || []
-        init[key] = opts.length > 1 ? opts[1].id : opts[0]?.id || 'none'
-      })
-    })
-    return init
-  }, [mealSlots])
-
-  const choices = useMemo(() => ({ ...mealDefaults, ...mealChoices }), [mealDefaults, mealChoices])
-
-  const totalMeals = useMemo(() => {
-    let total = 0
-    Object.entries(choices).forEach(([key, choiceId]) => {
-      const mType = key.slice(key.indexOf(':') + 1)
-      const mealType = MEAL_TYPES[mType]
-      if (!mealType) return
-      const opt = mealType.options.find((o) => o.id === choiceId)
-      if (opt) total += opt.perPerson * travelers
-    })
-    return total
-  }, [choices, travelers])
-
-  const totalMealCount = useMemo(
-    () => Object.values(choices).filter((id) => id !== 'none').length,
-    [choices],
-  )
 
   const defaultAccom = useMemo(() => {
     if (!trip) return null
@@ -423,15 +304,35 @@ export default function ResultatVoyage() {
 
   const effectiveAccom = selectedAccom || defaultAccom
 
+  // Tarifs relevés (DATAtourisme) près de la destination, pour le type d'hébergement retenu.
+  const priceType = PRICED_TYPES.includes(effectiveAccom?.type) ? effectiveAccom.type : null
+  const destLat = trip?.destination?.lat
+  const destLon = trip?.destination?.lon
+  const observedKey = priceType && isGeoPoint(trip?.destination) ? priceKey(destLat, destLon, priceType) : ''
+  useEffect(() => {
+    if (!observedKey) return undefined
+    let alive = true
+    fetchLodgingPrices({ lat: destLat, lon: destLon, type: priceType }).then((data) => {
+      if (alive) setObserved({ key: observedKey, data })
+    })
+    return () => {
+      alive = false
+    }
+  }, [observedKey, destLat, destLon, priceType])
+  const observedPrices = observedKey && observed.key === observedKey ? observed.data : null
+
+  const nightlyReal = parseNightlyPrice(nightlyInput)
   const accomPrice = useMemo(() => {
     if (!effectiveAccom || !trip || nights <= 0) return 0
+    if (nightlyReal != null) return Math.round(nightlyReal * nights)
     const rawConfort = Number(trip.profile?.confort)
     const confort = Number.isFinite(rawConfort) ? rawConfort : 0.5
+    if (observedPrices) return Math.round(priceFromObserved(observedPrices, confort) * nights)
     const [min, max] = effectiveAccom.priceRange
     return Math.round((min + (max - min) * confort) * nights)
-  }, [effectiveAccom, trip, nights])
+  }, [effectiveAccom, trip, nights, nightlyReal, observedPrices])
 
-  const geo = useMemo(() => estimateItinerary(itineraryPoints(trip), avgSpeedKph), [trip, avgSpeedKph])
+  const geo = useMemo(() => estimateItinerary(itineraryPoints(trip, { withReturn: true }), avgSpeedKph), [trip, avgSpeedKph])
 
   const storedKm = Number(trip?.itinerary?.distanceKm) || 0
   const storedSec = Number(trip?.itinerary?.durationSec) || 0
@@ -443,12 +344,46 @@ export default function ResultatVoyage() {
   const durationSec = route?.duration ? Math.round(route.duration) : storedSec > 0 ? storedSec : geo.durationSec
   const estimated = !route && storedKm <= 0
 
+  const planCoordinates = route?.coordinates?.length ? route.coordinates : trip?.itinerary?.polyline || []
+  const drivePlan = useMemo(
+    () =>
+      planDriving({
+        durationSec,
+        driveTime: trip?.preferences?.driveTime,
+        roundTrip: Boolean(trip?.returnTrip),
+        nights,
+        coordinates: planCoordinates,
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [durationSec, trip, nights, route],
+  )
+
+  useEffect(() => {
+    const map = mapInstance.current
+    stopMarkersRef.current.forEach((m) => m.remove())
+    stopMarkersRef.current = []
+    if (!map || !drivePlan) return
+    drivePlan.stops.forEach((stop) => {
+      if (!Number.isFinite(stop.lat) || !Number.isFinite(stop.lon)) return
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="min-width:22px;height:22px;padding:0 5px;background:#A85400;color:#fff;border:2px solid white;border-radius:11px;box-shadow:0 2px 6px rgba(0,0,0,.4);font:700 11px/18px sans-serif;text-align:center">N${stop.night}</div>`,
+        iconSize: [26, 22],
+        iconAnchor: [13, 11],
+      })
+      const m = L.marker([stop.lat, stop.lon], { icon })
+      labelMarker(m, `Étape de nuit ${stop.night}`)
+      m.bindPopup(`<b>Nuit ${stop.night}</b><br>Étape approximative`)
+      m.addTo(map)
+      stopMarkersRef.current.push(m)
+    })
+  }, [drivePlan, route, trip, hasCoords])
+
   const estimation = useMemo(() => {
     if (!trip || !vehicle) return null
     return estimateTripCosts({
       vehicle,
       distanceKm,
-      returnTrip: Boolean(trip.returnTrip),
       days,
       nights,
       travelers,
@@ -469,12 +404,21 @@ export default function ResultatVoyage() {
     ? estimation.lines.filter((line) => !CHOICE_LINE_IDS.includes(line.id))
     : []
   const baseTotal = round2(baseLines.reduce((sum, line) => sum + line.amount, 0))
-  const estimatedMeals = estimation?.totals?.food || 0
   const estimatedAccom = estimation?.totals?.accommodation || 0
-  const adjustedTotal = round2(baseTotal + totalMeals + accomPrice)
+  const adjustedTotal = round2(baseTotal + accomPrice)
   const remainingAmount = round2(budget.max - adjustedTotal)
 
   const accomOptions = ACCOMMODATIONS[slug] || ACCOMMODATIONS[DEFAULT_ACCOMMODATIONS]
+  const rawConfortAlt = Number(trip.profile?.confort)
+  const accomAlternatives = lodgingAlternatives({
+    options: accomOptions,
+    current: effectiveAccom,
+    currentLodging: accomPrice,
+    confort: Number.isFinite(rawConfortAlt) ? rawConfortAlt : 0.5,
+    nights,
+    otherCosts: round2(baseTotal),
+    max: budget.max,
+  })
   const googleMapsUrl = hasCoords
     ? `https://www.google.com/maps/dir/?api=1&origin=${trip.departure.lat},${trip.departure.lon}&destination=${trip.destination.lat},${trip.destination.lon}&travelmode=driving`
     : ''
@@ -484,14 +428,12 @@ export default function ResultatVoyage() {
 
   const mapFilters = [
     { id: 'all', label: 'Tous', icon: 'map', count: mapAccoms.length },
-    { id: 'hotel', label: 'Hôtels', icon: 'bed', count: mapAccoms.filter((a) => a.type === 'hotel').length },
-    {
-      id: 'camping',
-      label: 'Campings',
-      icon: 'tent',
-      count: mapAccoms.filter((a) => a.type === 'camping').length,
-    },
-    { id: 'airbnb', label: 'Airbnb', icon: 'home', count: mapAccoms.filter((a) => a.type === 'airbnb').length },
+    ...allowedLodging.map((type) => ({
+      id: type,
+      label: LODGING_TYPES[type].plural,
+      icon: LODGING_TYPES[type].icon,
+      count: mapAccoms.filter((a) => a.type === type).length,
+    })),
   ]
 
   function exportGpx() {
@@ -506,10 +448,6 @@ export default function ResultatVoyage() {
         ? { tone: 'ok', msg: 'GPX téléchargé.' }
         : { tone: 'ok', msg: 'Trajet non calculé : GPX exporté en points d’étape.' },
     )
-  }
-
-  function setMealChoice(key, optionId) {
-    setMealChoices((prev) => ({ ...prev, [key]: optionId }))
   }
 
   function handleModify() {
@@ -587,6 +525,15 @@ export default function ResultatVoyage() {
               )}
             </Card>
 
+            <DrivingPlan
+              plan={drivePlan}
+              roundTrip={Boolean(trip.returnTrip)}
+              nights={nights}
+              accommodations={mapAccoms}
+              accomLoading={accomLoading}
+              vehicleSlug={slug}
+            />
+
             <Card>
               <SectionHeader
                 title="Carte & Hébergements"
@@ -642,67 +589,6 @@ export default function ResultatVoyage() {
 
             <Card>
               <SectionHeader
-                title="Repas du voyage"
-                subtitle={`Choisissez le type de chaque repas · ${plural(travelers, 'voyageur', 'voyageurs')}`}
-              />
-              <div className="space-y-4">
-                {mealSlots.map((slot) => (
-                  <div key={slot.day} className="p-4 bg-pt-cream rounded-xl">
-                    <p className="text-sm font-bold text-pt-orange-ink mb-3">Jour {slot.day}</p>
-                    <div className="space-y-3">
-                      {slot.meals.map((mType) => {
-                        const mt = MEAL_TYPES[mType]
-                        if (!mt) return null
-                        const key = `${slot.day}:${mType}`
-                        const chosen = choices[key] || 'none'
-                        return (
-                          <div key={mType}>
-                            <p className="text-xs font-semibold uppercase text-pt-neutral/75 mb-1.5 flex items-center gap-1.5">
-                              <Icon name={mt.icon} size={13} />
-                              {mt.label}
-                            </p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {mt.options.map((opt) => {
-                                const isSelected = chosen === opt.id
-                                const cost = opt.perPerson * travelers
-                                return (
-                                  <Button
-                                    key={opt.id}
-                                    size="sm"
-                                    variant={isSelected ? 'primary' : 'secondary'}
-                                    aria-pressed={isSelected}
-                                    onClick={() => setMealChoice(key, opt.id)}
-                                  >
-                                    {opt.label}{' '}
-                                    <span className={isSelected ? 'text-white' : 'text-pt-neutral/75'}>
-                                      {opt.perPerson > 0 ? formatEUR(opt.perPerson) : 'gratuit'}
-                                    </span>
-                                    {opt.perPerson > 0 && (
-                                      <span className={isSelected ? 'text-white' : 'text-pt-neutral/70'}>
-                                        ({formatEUR(cost)})
-                                      </span>
-                                    )}
-                                  </Button>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-3 pt-3 border-t flex justify-between gap-3 text-sm font-semibold">
-                <span>
-                  Total repas ({totalMealCount} repas · {plural(travelers, 'personne', 'personnes')})
-                </span>
-                <span className="text-pt-orange-ink">{formatEUR(totalMeals)}</span>
-              </div>
-            </Card>
-
-            <Card>
-              <SectionHeader
                 title="Hébergement"
                 subtitle={`${plural(nights, 'nuit', 'nuits')} · choisissez sur la carte ou ci-dessous`}
               />
@@ -719,7 +605,10 @@ export default function ResultatVoyage() {
                       key={`${opt.id}-${opt.label}`}
                       type="button"
                       aria-pressed={isActive}
-                      onClick={() => setSelectedAccom(opt)}
+                      onClick={() => {
+                        setSelectedAccom(opt)
+                        setNightlyInput('')
+                      }}
                       className={`w-full p-4! text-left flex items-center gap-3 border-2 transition-all ${
                         isActive
                           ? 'border-pt-green bg-pt-green-soft'
@@ -733,7 +622,7 @@ export default function ResultatVoyage() {
                       </span>
                       <span className="text-right shrink-0">
                         <span className="block font-bold text-sm text-pt-orange-ink">{formatEUR(perNight)}</span>
-                        <span className="block text-[10px] text-pt-neutral/70">/nuit</span>
+                        <span className="block text-[10px] text-pt-neutral/70">/nuit · estimé</span>
                       </span>
                     </Card>
                   )
@@ -741,11 +630,57 @@ export default function ResultatVoyage() {
               </div>
               {nights > 0 && (
                 <div className="mt-3 pt-3 border-t flex justify-between gap-3 text-sm font-semibold">
-                  <span>Total hébergement ({plural(nights, 'nuit', 'nuits')} · {effectiveAccom?.label || '—'})</span>
+                  <span>
+                    Total hébergement ({plural(nights, 'nuit', 'nuits')} · {effectiveAccom?.label || '—'})
+                    <span className="block text-xs font-normal text-pt-neutral/75">
+                      {nightlyReal != null
+                        ? 'prix saisi par vous'
+                        : observedPrices
+                          ? 'tarifs relevés près de la destination (DATAtourisme)'
+                          : 'estimation PlanTrip'}
+                    </span>
+                  </span>
                   <span className="text-pt-orange-ink">{formatEUR(accomPrice)}</span>
                 </div>
               )}
+              {observedPrices && (
+                <div className="mt-3 rounded-xl border border-pt-line bg-pt-cream p-3 text-sm" data-testid="observed-prices">
+                  <p className="font-semibold">
+                    Tarifs relevés près de {trip.destination?.name?.split(',')[0] || 'la destination'} :{' '}
+                    {formatObservedRange(observedPrices)} la nuit
+                    <span className="font-normal text-pt-neutral/75"> (médiane {observedPrices.median} €)</span>
+                  </p>
+                  <p className="text-xs text-pt-neutral/75 mt-1">
+                    {LODGING_TYPES[priceType]?.plural || 'Hébergements'} : prix « à partir de » déclarés par {observedPrices.n}{' '}
+                    établissements à moins de {observedPrices.radiusKm} km. Ils peuvent être périmés : vérifiez-les chez le
+                    partenaire. Source : DATAtourisme et ses producteurs (offices de tourisme), Licence Ouverte Etalab 2.0
+                    {observedPrices.updatedAt ? `, données mises à jour jusqu’au ${observedPrices.updatedAt.split('-').reverse().join('/')}` : ''}.
+                  </p>
+                </div>
+              )}
+              {nights > 0 && (
+                <div className="mt-3">
+                  <label htmlFor="accom-real-price" className="text-xs font-semibold uppercase text-pt-neutral/75">
+                    Prix réel trouvé (€ par nuit)
+                  </label>
+                  <input
+                    id="accom-real-price"
+                    type="text"
+                    inputMode="decimal"
+                    value={nightlyInput}
+                    onChange={(e) => setNightlyInput(e.target.value)}
+                    placeholder="Ex : 62"
+                    className="w-full mt-1 px-3 py-2 bg-pt-cream border border-pt-line rounded-xl text-sm"
+                  />
+                  <p className="text-xs text-pt-neutral/75 mt-1">
+                    Sans tarifs relevés ci-dessus, les prix affichés sont des estimations PlanTrip. Saisissez le prix de l’offre que vous retenez : il remplace
+                    l’estimation dans le budget.
+                  </p>
+                </div>
+              )}
             </Card>
+
+            <OffersPanel trip={trip} travelers={travelers} vehicleSlug={slug} />
 
             <Card>
               <SectionHeader
@@ -800,15 +735,6 @@ export default function ResultatVoyage() {
                 <p className="text-xs font-semibold uppercase text-pt-neutral/75 mb-2">Votre sélection</p>
                 <div className="flex items-start justify-between gap-3">
                   <span>
-                    Repas ({totalMealCount} repas)
-                    <span className="block text-xs text-pt-neutral/75">
-                      estimation {formatEUR(estimatedMeals)}
-                    </span>
-                  </span>
-                  <span className="font-semibold shrink-0">{formatEUR(totalMeals)}</span>
-                </div>
-                <div className="flex items-start justify-between gap-3">
-                  <span>
                     Hébergement ({plural(nights, 'nuit', 'nuits')} · {effectiveAccom?.label || '—'})
                     <span className="block text-xs text-pt-neutral/75">
                       estimation {formatEUR(estimatedAccom)}
@@ -836,6 +762,44 @@ export default function ResultatVoyage() {
                 <p className="mt-2 text-xs text-pt-neutral/80">
                   Aucune enveloppe définie : fixez un budget dans l’onglet Budget.
                 </p>
+              )}
+              {budget.max > 0 && remainingAmount < 0 && (
+                <div className="mt-4 pt-4 border-t border-pt-green/20 text-sm" data-testid="accom-alternatives">
+                  <p className="text-xs font-semibold uppercase text-pt-neutral/75 mb-2">Alternatives d’hébergement</p>
+                  {accomAlternatives.length > 0 ? (
+                    <div className="grid gap-2">
+                      {accomAlternatives.map((alt) => (
+                        <button
+                          key={`${alt.option.id}-${alt.option.label}`}
+                          type="button"
+                          onClick={() => {
+                            setSelectedAccom(alt.option)
+                            setNightlyInput('')
+                          }}
+                          className="w-full text-left p-3 rounded-xl border-2 border-pt-line bg-white hover:border-pt-green/40"
+                        >
+                          <span className="flex items-center justify-between gap-3">
+                            <span className="font-semibold">{alt.option.label}</span>
+                            <span className="text-pt-orange-ink font-semibold">
+                              {formatEUR(alt.perNight)}/nuit · {formatEUR(alt.lodging)}
+                            </span>
+                          </span>
+                          <span className={`block text-xs mt-0.5 ${alt.fits ? 'text-pt-green-ink' : 'text-pt-danger'}`}>
+                            {alt.fits
+                              ? `Total ${formatEUR(alt.total)} : dans votre budget, reste ${formatEUR(alt.remaining)}`
+                              : `Total ${formatEUR(alt.total)} : dépasse encore de ${formatEUR(-alt.remaining)}`}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-pt-neutral/80">
+                      L’hébergement choisi est déjà le moins cher proposé pour ce véhicule : le dépassement vient surtout du trajet
+                      ({formatEUR(baseTotal)} de frais de route, activités comprises). Votre budget reste inchangé ; vous pouvez le
+                      relever, raccourcir le trajet ou saisir un prix d’hébergement plus bas.
+                    </p>
+                  )}
+                </div>
               )}
             </Card>
 

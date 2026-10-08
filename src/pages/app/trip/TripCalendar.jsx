@@ -50,7 +50,7 @@ export default function TripCalendar() {
         />
         <div className="mt-4 flex flex-wrap gap-2">
           <Pill tone="green" icon="pin">
-            {plural(stops.length, 'étape', 'étapes')} réparties
+            {plural(stops.length - unassigned.length, 'étape', 'étapes')} réparties
           </Pill>
           <Pill tone={unassigned.length ? 'orange' : 'neutral'} icon={unassigned.length ? 'alert' : 'check'}>
             {unassigned.length ? `${unassigned.length} sans jour` : 'Tout est attribué'}
@@ -150,11 +150,14 @@ export default function TripCalendar() {
               <li key={place.id} className="flex items-center gap-3 rounded-xl border border-pt-line p-3">
                 <span className="min-w-0 flex-1 truncate text-sm">{place.name}</span>
                 <SelectInput
-                  value={String(place.day || 1)}
+                  value=""
                   onChange={(e) => setDay(place.id, e.target.value)}
-                  className="w-24 py-1 text-xs"
+                  className="w-28 py-1 text-xs"
                   aria-label={`Attribuer ${place.name} à un jour`}
                 >
+                  <option value="" disabled>
+                    Choisir…
+                  </option>
                   {days.map((d) => (
                     <option key={d.number} value={String(d.number)}>
                       Jour {d.number}

@@ -5,6 +5,7 @@ import { saveTrip, updateMemory, getMemory, getTrip, getCurrentTrip } from '../s
 import { DRIVE_TIMES } from '../domain/trip.js'
 import { searchPlaces } from '../services/geocoding.js'
 import { isOnline } from '../lib/online.js'
+import VehicleIcon from '../components/VehicleIcon.jsx'
 
 const motivationsList=["Nature","Gastronomie","Patrimoine","Détente","Sport","Culture","Fête","Famille","Photo","Aventure"]
 
@@ -74,24 +75,31 @@ export default function PreparerVoyage(){
   const [dest,setDest]=useState(()=> draft?.destination ?? null)
   const [vehicle,setVehicle]=useState(()=> draft?.vehicle?.slug ?? null)
   const [motor] = useState(null)
-  const [vehicleModel,setVehicleModel]=useState(()=> draft?.vehicleModel ?? "")
+  const [vehicleModel,setVehicleModel]=useState(()=> draft?.vehicleModel ?? draft?.vehicle?.model ?? "")
   const [customConsumption,setCustomConsumption]=useState(()=>{
-    const c = draft?.vehicle?.consumption
+    const c = draft?.vehicle?.consumption ?? draft?.vehicle?.customConsumption
     if(c && c !== draft?.vehicle?.defaultConsumption) return c.toString()
     return ""
   })
+  const [heightM,setHeightM]=useState(()=> draft?.vehicle?.heightM ? String(draft.vehicle.heightM) : "")
+  const [weightT,setWeightT]=useState(()=> draft?.vehicle?.weightT ? String(draft.vehicle.weightT) : "")
   const [travelers,setTravelers]=useState(()=> draft?.travelers ?? 2)
   const [dates,setDates]=useState(()=> draft?.dates ?? {start:"",end:""})
   const [departureTime,setDepartureTime]=useState(()=> draft?.departureTime ?? "08:00")
   const [arrivalTime,setArrivalTime]=useState(()=> draft?.arrivalTime ?? "18:00")
-  const [budget,setBudget]=useState(()=> draft?.budget != null ? String(draft.budget) : "")
-  const [profile,setProfile]=useState(()=> draft?.profile ?? {economies:0.5,paysages:0.5,confort:0.5})
+  const [budget,setBudget]=useState(()=> draft?.budget != null ? String(typeof draft.budget === "object" ? (draft.budget.max || "") : draft.budget) : "")
+  const [profile,setProfile]=useState(()=>{
+    const p = draft?.profile || {}
+    const pick = (...vals)=> vals.find(v=> typeof v === "number" && Number.isFinite(v)) ?? 0.5
+    return { economies: pick(p.economies, p.transport), paysages: pick(p.paysages, p.sejour), confort: pick(p.confort) }
+  })
   const [avoidTolls,setAvoidTolls]=useState(()=> Boolean(draft?.preferences?.avoidTolls))
   const [avoidHighways,setAvoidHighways]=useState(()=> Boolean(draft?.preferences?.avoidHighways))
   const [driveTime,setDriveTime]=useState(()=> draft?.preferences?.driveTime ?? "balanced")
   const [motivations,setMotivations]=useState(()=> draft?.motivations ?? [])
   const [errors,setErrors]=useState({})
-  const [returnTrip,setReturnTrip]=useState(()=> Boolean(draft?.preferences?.returnTrip))
+  const summaryRef=useRef(null)
+  const [returnTrip,setReturnTrip]=useState(()=> Boolean(draft?.returnTrip ?? draft?.preferences?.returnTrip))
 
   const veh = vehicles.find(v=>v.slug===vehicle)
   const days = dates.start && dates.end ? Math.ceil((new Date(dates.end)-new Date(dates.start))/(1000*60*60*24))+1 : 0
@@ -110,6 +118,16 @@ export default function PreparerVoyage(){
     if(!depart) e.departure="Sélectionnez un point de départ"
     if(!dest) e.destination="Sélectionnez une destination"
     if(!vehicle) e.vehicle="Sélectionnez un véhicule"
+    if(customConsumption && !(parseFloat(customConsumption) > 0)) e.consumption="Consommation supérieure à 0"
+    const hasGabarit = Boolean(vehicles.find(x=>x.slug===vehicle)?.gabarit)
+    if(hasGabarit && heightM){
+      const h = parseFloat(heightM.replace(",","."))
+      if(isNaN(h) || h<1.5 || h>4.5) e.height="Hauteur entre 1,5 et 4,5 m"
+    }
+    if(hasGabarit && weightT){
+      const w = parseFloat(weightT.replace(",","."))
+      if(isNaN(w) || w<0.5 || w>44) e.weight="Poids entre 0,5 et 44 t"
+    }
     if(!budget || isNaN(budget) || parseFloat(budget)<=0) e.budget="Budget valide requis"
     if(!dates.start) e.dates="Date de départ requise"
     else if(!dates.end) e.dates="Date de retour requise"
@@ -120,13 +138,21 @@ export default function PreparerVoyage(){
   function handleSubmit(){
     const e=validate()
     setErrors(e)
-    if(Object.keys(e).length) return
+    if(Object.keys(e).length){
+      // Le résumé est en bas de page, près du bouton : on y amène l'utilisateur et on l'annonce aux lecteurs d'écran.
+      setTimeout(()=> summaryRef.current?.scrollIntoView?.({behavior:"smooth",block:"center"}), 0)
+      return
+    }
     const v = vehicles.find(x=>x.slug===vehicle)
     const consumption = customConsumption ? parseFloat(customConsumption) : v.defaultConsumption
+    const gabarit = v.gabarit ? {
+      heightM: heightM ? parseFloat(heightM.replace(",",".")) : null,
+      weightT: weightT ? parseFloat(weightT.replace(",",".")) : null,
+    } : {}
     const trip={
       id: draft?.id,
       tripId: draft?.id || undefined,
-      vehicle:{...v,consumption}, departure:depart, destination:dest, dates:{...dates,days},
+      vehicle:{...v,consumption,...gabarit}, departure:depart, destination:dest, dates:{...dates,days},
       departureTime, arrivalTime,
       budget:parseFloat(budget), profile, motivations, travelers, motorisationId:motor,
       vehicleModel:vehicleModel||null,
@@ -176,7 +202,7 @@ export default function PreparerVoyage(){
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {vehicles.map(v=> (
                 <button key={v.slug} onClick={()=>selectVehicle(v.slug)} className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 ${vehicle===v.slug?"border-pt-green bg-pt-green-soft":"border-pt-line bg-pt-cream hover:border-pt-green/30"}`}>
-                  <span className="text-2xl">{v.icon}</span>
+                  <VehicleIcon vehicle={v} className="h-12 w-16" />
                   <span className="text-xs font-medium text-center">{v.name}</span>
                 </button>
               ))}
@@ -190,13 +216,32 @@ export default function PreparerVoyage(){
                   <label className="text-xs font-semibold uppercase text-pt-neutral/75">Modèle (optionnel)</label>
                   <input value={vehicleModel} onChange={e=>setVehicleModel(e.target.value)} placeholder="Ex: Citroën Ami, Renault Twizy..." className="w-full mt-1 px-4 py-2 bg-pt-cream border border-pt-line rounded-xl text-sm" />
                 </div>
+                {veh.gabarit && (
+                  <div className="mt-3">
+                    <p className="text-xs font-semibold uppercase text-pt-neutral/75">Gabarit du véhicule (optionnel)</p>
+                    <div className="grid grid-cols-2 gap-3 mt-1">
+                      <div>
+                        <label htmlFor="trip-height" className="text-xs text-pt-neutral/75">Hauteur (m)</label>
+                        <input id="trip-height" type="text" inputMode="decimal" value={heightM} onChange={e=>setHeightM(e.target.value)} placeholder={`Défaut : ${String(veh.gabarit.heightM).replace(".",",")}`} className="w-full mt-1 px-3 py-2 bg-pt-cream border border-pt-line rounded-xl text-sm" />
+                        {errors.height && <p className="text-xs text-pt-danger mt-1">{errors.height}</p>}
+                      </div>
+                      <div>
+                        <label htmlFor="trip-weight" className="text-xs text-pt-neutral/75">Poids total en charge (t)</label>
+                        <input id="trip-weight" type="text" inputMode="decimal" value={weightT} onChange={e=>setWeightT(e.target.value)} placeholder={`Défaut : ${String(veh.gabarit.weightT).replace(".",",")}`} className="w-full mt-1 px-3 py-2 bg-pt-cream border border-pt-line rounded-xl text-sm" />
+                        {errors.weight && <p className="text-xs text-pt-danger mt-1">{errors.weight}</p>}
+                      </div>
+                    </div>
+                    <p className="text-xs text-pt-neutral/75 mt-1">Hauteur et PTAC figurent sur la carte grise. L’itinéraire évite les ponts et routes qui ne conviennent pas.</p>
+                  </div>
+                )}
                 {veh.defaultConsumption && (
                   <div className="mt-3">
-                    <label className="text-xs font-semibold uppercase text-pt-neutral/75">Consommation réelle (optionnel)</label>
+                    <label htmlFor="trip-consumption" className="text-xs font-semibold uppercase text-pt-neutral/75">Consommation réelle (optionnel)</label>
                     <div className="flex items-center gap-2 mt-1">
-                      <input type="number" step="0.1" value={customConsumption} onChange={e=>setCustomConsumption(e.target.value)} placeholder={`Défaut: ${veh.defaultConsumption}`} className="w-32 px-3 py-2 bg-pt-cream border border-pt-line rounded-xl text-sm" />
+                      <input id="trip-consumption" type="number" step="0.1" min="0.1" value={customConsumption} onChange={e=>setCustomConsumption(e.target.value)} placeholder={`Défaut: ${veh.defaultConsumption}`} className="w-32 px-3 py-2 bg-pt-cream border border-pt-line rounded-xl text-sm" />
                       <span className="text-xs text-pt-neutral/75">L/100km</span>
                     </div>
+                    {errors.consumption && <p className="text-xs text-pt-danger mt-1">{errors.consumption}</p>}
                   </div>
                 )}
               </>
@@ -274,6 +319,14 @@ export default function PreparerVoyage(){
           </div>
 
           <div className="text-center pt-4">
+            {Object.keys(errors).length>0 && (
+              <div ref={summaryRef} role="alert" className="mb-5 mx-auto max-w-xl text-left p-4 rounded-xl border-2 border-pt-danger/40 bg-pt-danger-soft">
+                <p className="font-bold text-pt-danger text-sm">Informations manquantes ou à vérifier</p>
+                <ul className="mt-2 list-disc pl-5 text-sm text-pt-danger space-y-0.5">
+                  {Object.entries(errors).map(([key,msg])=> <li key={key}>{msg}</li>)}
+                </ul>
+              </div>
+            )}
             <button onClick={handleSubmit} className="px-10 py-4 bg-pt-green text-white font-semibold rounded-xl hover:bg-pt-green-dark hover:shadow-xl transition-all">Construire mon voyage →</button>
           </div>
         </div>

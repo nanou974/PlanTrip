@@ -244,6 +244,13 @@ function draftKey(draft) {
     draft?.destination?.name || '',
     draft?.dates?.start || '',
     draft?.vehicle?.slug || '',
+    // Gabarit : change les ponts et routes autorisés, donc le tracé.
+    draft?.vehicle?.heightM || '',
+    draft?.vehicle?.weightT || '',
+    // Options qui changent le tracé : un ancien itinéraire enregistré ne doit pas survivre à leur modification.
+    draft?.preferences?.avoidTolls ? 'T' : '',
+    draft?.preferences?.avoidHighways ? 'H' : '',
+    (draft?.preferences?.returnTrip ?? draft?.returnTrip) ? 'R' : '',
   ].join('|')
 }
 
@@ -264,6 +271,8 @@ export function draftToTrip(draft, id = null) {
     travelers: draft.travelers,
     vehicleSlug: draft.vehicle?.slug,
     vehicleModel: draft.vehicleModel || '',
+    vehicleHeightM: draft.vehicle?.heightM,
+    vehicleWeightT: draft.vehicle?.weightT,
     customConsumption: draft.vehicle?.consumption,
     profile: {
       transport: num(p.economies, 0.5),

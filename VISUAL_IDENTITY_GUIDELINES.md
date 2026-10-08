@@ -128,7 +128,7 @@ Ce qui se construit ici, sous l'interface, ce sont de premiers souvenirs — l'a
 
 # GitHub
 
-![](assets/visual_identity_collection/10_GitHub.png)
+![](assets/visual_identity_collection/10_Github.png)
 
 Un projet open source fait une promesse particulière dès qu'il publie sa première ligne de code : que n'importe qui, à n'importe quelle heure, dans n'importe quel pays, puisse ouvrir le dépôt et comprendre ce qu'il a sous les yeux sans avoir à demander la permission.
 

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logos/PlanTrip_Logo_Color.png" alt="PlanTrip Logo" width="360">
+  <img src="../assets/logos/PlanTrip_Logo_Color.png" alt="PlanTrip Logo" width="360">
 </p>
 
 <h1 align="center">PlanTrip</h1>

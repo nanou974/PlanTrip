@@ -15,8 +15,12 @@ import { normalizeEmail, publicUser } from './db.js'
 import { sendMagicEmail } from './mailer.js'
 import { createRouteService } from './route.js'
 import { createLodgingPriceService } from './lodgingPrices.js'
+import { MAX_SYNC_BODY, MAX_TRIPS, SPACE_IDLE_MS, TOMBSTONE_TTL_MS, sanitizeForShare, validateIncoming } from './sync.js'
 
 export const SESSION_COOKIE = 'pt_session'
+export const SPACE_HEADER = 'x-plantrip-space'
+const SPACE_RE = /^([a-f0-9]{32})\.([a-f0-9]{64})$/
+const SHARE_TOKEN_RE = /^[a-f0-9]{32}$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const CODE_RE = /^\d{6}$/
 const HOST_RE = /^[a-zA-Z0-9.\-[\]:]+$/
@@ -37,13 +41,13 @@ function fail(res, status, code, message) {
   sendJson(res, status, { error: { code, message } })
 }
 
-function readBody(req) {
+function readBody(req, maxBytes = 64 * 1024) {
   return new Promise((resolve, reject) => {
     const chunks = []
     let size = 0
     req.on('data', (c) => {
       size += c.length
-      if (size > 64 * 1024) {
+      if (size > maxBytes) {
         reject(new Error('body_too_large'))
         req.destroy()
         return
@@ -134,6 +138,20 @@ export function createApiHandler({ store, config }) {
   const routeService = createRouteService({ config, fetchImpl: config.fetchImpl || fetch })
   const priceIpLimiter = createRateLimiter({ max: 60, windowMs: 10 * 60_000 })
   const priceService = createLodgingPriceService({ config, fetchImpl: config.fetchImpl || fetch })
+  // Espaces anonymes : chaque création est une ligne en base, donc limitée par adresse.
+  const spaceIpLimiter = createRateLimiter({ max: 20, windowMs: 10 * 60_000 })
+  const syncLimiter = createRateLimiter({ max: 240, windowMs: 10 * 60_000 })
+  const shareReadLimiter = createRateLimiter({ max: 240, windowMs: 10 * 60_000 })
+  const shareWriteLimiter = createRateLimiter({ max: 60, windowMs: 10 * 60_000 })
+  const spaceIdleMs = config.spaceIdleMs || SPACE_IDLE_MS
+
+  /** Ménage opportuniste : espaces inactifs et suppressions anciennes. */
+  function purgeStale(now = Date.now()) {
+    store.purge({ idleCutoff: now - spaceIdleMs, tombstoneCutoff: now - TOMBSTONE_TTL_MS })
+  }
+  purgeStale()
+  const purgeTimer = setInterval(purgeStale, 6 * 3_600_000)
+  purgeTimer.unref?.()
 
   function startSession(req, res, userId) {
     const token = randomToken()
@@ -161,6 +179,150 @@ export function createApiHandler({ store, config }) {
       provider: 'magic',
       password: null,
     })
+  }
+
+  /** Espace anonyme présenté par l'appareil (en-tête `id.clé`) ; null si absent ou faux. */
+  function currentSpace(req) {
+    const m = SPACE_RE.exec(String(req.headers[SPACE_HEADER] || '').trim())
+    if (!m) return null
+    const space = store.findSpace(m[1])
+    if (!space || !equalHex(sha256Hex(m[2]), space.key_hash)) return null
+    return space
+  }
+
+  /** Propriétaire des voyages : le compte connecté, sinon l'espace anonyme. */
+  function ownerOf(req) {
+    const user = currentUser(req)
+    if (user) return { owner: `u:${user.id}`, kind: 'user', user }
+    const space = currentSpace(req)
+    if (space) {
+      store.touchSpace(space.id)
+      return { owner: `s:${space.id}`, kind: 'space', space }
+    }
+    return null
+  }
+
+  function requireOwner(req, res) {
+    const who = ownerOf(req)
+    if (!who) {
+      fail(res, 401, 'no_sync_identity', 'Synchronisation non activée sur cet appareil')
+      return null
+    }
+    if (!syncLimiter.hit(`sync:${who.owner}`)) {
+      fail(res, 429, 'too_many_requests', 'Trop de synchronisations : réessayez dans quelques minutes.')
+      return null
+    }
+    return who
+  }
+
+  async function handleSpaceCreate(req, res) {
+    if (!spaceIpLimiter.hit(`space-ip:${clientIp(req, config)}`)) {
+      return fail(res, 429, 'too_many_requests', 'Trop de créations d’espaces : réessayez dans quelques minutes.')
+    }
+    const id = randomToken(16)
+    const key = randomToken(32)
+    store.createSpace(id, sha256Hex(key))
+    return sendJson(res, 201, { space: { id, key } })
+  }
+
+  async function handleSync(req, res) {
+    const who = requireOwner(req, res)
+    if (!who) return
+    const body = await readBody(req, MAX_SYNC_BODY)
+    const checked = validateIncoming(body.trips)
+    if (!checked.ok) return fail(res, 400, checked.code, checked.message)
+    const live = store.countLiveTrips(who.owner)
+    let added = 0
+    for (const item of checked.items) {
+      if (item.deleted) continue
+      const known = store.findOwnerTrip(who.owner, item.id)
+      if (!known || known.deleted) added += 1
+    }
+    if (live + added > MAX_TRIPS) {
+      return fail(res, 413, 'quota_exceeded', `Limite de ${MAX_TRIPS} voyages synchronisés atteinte.`)
+    }
+    const results = {}
+    for (const item of checked.items) results[item.id] = store.applyTrip(who.owner, item)
+    return sendJson(res, 200, { trips: store.listOwnerTrips(who.owner), results, serverTime: Date.now(), kind: who.kind })
+  }
+
+  async function handleSyncWipe(req, res) {
+    const who = requireOwner(req, res)
+    if (!who) return
+    if (who.kind === 'space') store.deleteSpaceCompletely(who.space.id)
+    else store.wipeOwner(who.owner)
+    res.writeHead(204, { 'X-Content-Type-Options': 'nosniff' })
+    return res.end()
+  }
+
+  /** À la connexion : les voyages de l'espace anonyme de l'appareil passent dans le compte. */
+  async function handleAdopt(req, res) {
+    const user = currentUser(req)
+    if (!user) return fail(res, 401, 'no_session', 'Connectez-vous pour reprendre vos voyages')
+    const space = currentSpace(req)
+    if (!space) return fail(res, 404, 'no_space', 'Aucun espace à reprendre')
+    if (!syncLimiter.hit(`sync:u:${user.id}`)) {
+      return fail(res, 429, 'too_many_requests', 'Trop de synchronisations : réessayez dans quelques minutes.')
+    }
+    store.adoptSpace(space.id, user.id)
+    return sendJson(res, 200, { trips: store.listOwnerTrips(`u:${user.id}`), kind: 'user' })
+  }
+
+  async function handleShareCreate(req, res) {
+    const who = requireOwner(req, res)
+    if (!who) return
+    if (!shareWriteLimiter.hit(`share-w:${who.owner}`)) {
+      return fail(res, 429, 'too_many_requests', 'Trop de partages : réessayez dans quelques minutes.')
+    }
+    const body = await readBody(req)
+    const tripId = String(body.tripId || '')
+    const showDeparture = body.showDeparture === true
+    const trip = store.findOwnerTrip(who.owner, tripId)
+    if (!trip || trip.deleted) {
+      return fail(res, 404, 'trip_not_synced', 'Ce voyage n’est pas encore synchronisé : réessayez dans un instant.')
+    }
+    const existing = store.findShareOfTrip(who.owner, tripId)
+    if (existing) {
+      if (Boolean(existing.show_departure) !== showDeparture) store.setShareDeparture(existing.token, showDeparture)
+      return sendJson(res, 200, { share: { token: existing.token, tripId, showDeparture } })
+    }
+    const token = randomToken(16)
+    store.createShare(token, who.owner, tripId, showDeparture)
+    return sendJson(res, 201, { share: { token, tripId, showDeparture } })
+  }
+
+  async function handleShareList(req, res) {
+    const who = requireOwner(req, res)
+    if (!who) return
+    return sendJson(res, 200, { shares: store.listOwnerShares(who.owner) })
+  }
+
+  async function handleShareDelete(req, res, token) {
+    const who = requireOwner(req, res)
+    if (!who) return
+    const share = SHARE_TOKEN_RE.test(token) ? store.findShare(token) : null
+    if (!share || share.owner !== who.owner) return fail(res, 404, 'no_share', 'Lien de partage introuvable')
+    store.deleteShare(token)
+    res.writeHead(204, { 'X-Content-Type-Options': 'nosniff' })
+    return res.end()
+  }
+
+  /** Lecture publique : jamais d'identité, jamais de cache, jamais d'indexation. */
+  async function handleShared(req, res, token) {
+    if (!shareReadLimiter.hit(`share-r:${clientIp(req, config)}`)) {
+      return fail(res, 429, 'too_many_requests', 'Trop de consultations : réessayez dans quelques minutes.')
+    }
+    const share = SHARE_TOKEN_RE.test(token) ? store.findShare(token) : null
+    const trip = share ? store.findOwnerTrip(share.owner, share.trip_id) : null
+    if (!share || !trip || trip.deleted || !trip.data) {
+      return fail(res, 404, 'no_share', 'Ce lien de partage n’existe plus.')
+    }
+    return sendJson(
+      res,
+      200,
+      { trip: sanitizeForShare(trip.data, { showDeparture: Boolean(share.show_departure) }), updatedAt: trip.updatedAt },
+      { 'X-Robots-Tag': 'noindex, nofollow' },
+    )
   }
 
   async function handleRegister(req, res) {
@@ -373,6 +535,14 @@ export function createApiHandler({ store, config }) {
       return sendJson(res, 200, { user })
     }
     if (req.method === 'POST' && path === '/api/route') return handleRoute(req, res)
+    if (req.method === 'POST' && path === '/api/space') return handleSpaceCreate(req, res)
+    if (req.method === 'POST' && path === '/api/sync') return handleSync(req, res)
+    if (req.method === 'DELETE' && path === '/api/sync') return handleSyncWipe(req, res)
+    if (req.method === 'POST' && path === '/api/sync/adopt') return handleAdopt(req, res)
+    if (req.method === 'POST' && path === '/api/shares') return handleShareCreate(req, res)
+    if (req.method === 'GET' && path === '/api/shares') return handleShareList(req, res)
+    if (req.method === 'DELETE' && path.startsWith('/api/shares/')) return handleShareDelete(req, res, path.slice('/api/shares/'.length))
+    if (req.method === 'GET' && path.startsWith('/api/shared/')) return handleShared(req, res, path.slice('/api/shared/'.length))
     if (req.method === 'GET' && path === '/api/lodging-prices') return handleLodgingPrices(req, res, url)
     if (req.method === 'POST' && path === '/api/auth/register') return handleRegister(req, res)
     if (req.method === 'POST' && path === '/api/auth/login') return handleLogin(req, res)

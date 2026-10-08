@@ -21,6 +21,7 @@ const currentStore = createPersistentStore(KEYS.current, null)
 const libraryStore = createPersistentStore(KEYS.library, [])
 const memoryStore = createPersistentStore(KEYS.memory, null)
 const prefsStore = createPersistentStore(KEYS.prefs, {})
+const tombstonesStore = createPersistentStore(KEYS.tombstones, {})
 
 export const DEFAULT_PREFS = {
   theme: 'system',
@@ -86,6 +87,7 @@ export function useCrossTabSync() {
       if (e.key === KEYS.library) libraryStore.reload()
       if (e.key === KEYS.memory) memoryStore.reload()
       if (e.key === KEYS.prefs) prefsStore.reload()
+      if (e.key === KEYS.tombstones) tombstonesStore.reload()
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
@@ -118,6 +120,7 @@ export function upsertTrip(trip) {
 }
 
 export function deleteTrip(id) {
+  recordDeletion([id])
   const next = tripsStore.get().filter((t) => t.id !== id)
   tripsStore.set(next)
   if (currentStore.get()?.id === id) currentStore.set(null)
@@ -125,9 +128,95 @@ export function deleteTrip(id) {
 }
 
 export function clearTrips() {
+  recordDeletion(tripIdsOf(tripsStore.get()))
   tripsStore.set([])
   currentStore.set(null)
   return []
+}
+
+/* ————————————————————————————————————————————————
+   Synchronisation — suppressions et voyages reçus
+   ———————————————————————————————————————————————— */
+
+function tripIdsOf(list) {
+  return (Array.isArray(list) ? list : []).map((t) => t?.id).filter(Boolean)
+}
+
+/** Note les voyages supprimés ici : le serveur et les autres appareils doivent l'apprendre. */
+function recordDeletion(ids) {
+  if (!ids.length) return
+  const now = Date.now()
+  const next = { ...(tombstonesStore.get() || {}) }
+  for (const id of ids) next[id] = now
+  tombstonesStore.set(next)
+}
+
+/** Voyages tels qu'enregistrés (sans dérivation), pour l'envoi au serveur. */
+export function getStoredTrips() {
+  const list = tripsStore.get()
+  return Array.isArray(list) ? list.filter((t) => t && typeof t === 'object' && t.id) : []
+}
+
+export function getTombstones() {
+  const t = tombstonesStore.get()
+  return t && typeof t === 'object' ? { ...t } : {}
+}
+
+export function forgetTombstones(ids) {
+  const next = { ...getTombstones() }
+  let changed = false
+  for (const id of ids) {
+    if (id in next) {
+      delete next[id]
+      changed = true
+    }
+  }
+  if (changed) tombstonesStore.set(next)
+}
+
+/** Appelle `fn` à chaque changement de la liste des voyages ; renvoie la fonction de désabonnement. */
+export function subscribeTrips(fn) {
+  return tripsStore.subscribe(fn)
+}
+
+function looksLikeTrip(data) {
+  return Boolean(data) && typeof data === 'object' && data.dates && typeof data.dates === 'object' && data.departure && data.destination
+}
+
+/**
+ * Intègre les voyages renvoyés par le serveur : la modification la plus récente l'emporte, une suppression
+ * plus récente efface le voyage ici, un voyage supprimé ici plus récemment n'est pas ressuscité.
+ * @param {Array<{id:string, updatedAt:number, deleted:boolean, data:object|null}>} items
+ * @returns {boolean} vrai si la liste locale a changé
+ */
+export function applyRemoteTrips(items) {
+  const list = [...getStoredTrips()]
+  const tomb = getTombstones()
+  let changed = false
+  let removedCurrent = false
+  for (const item of Array.isArray(items) ? items : []) {
+    if (!item?.id || !Number.isFinite(Number(item.updatedAt))) continue
+    const idx = list.findIndex((t) => t.id === item.id)
+    const localTs = idx >= 0 ? Date.parse(list[idx].updatedAt) || 0 : 0
+    if (item.deleted) {
+      if (idx >= 0 && item.updatedAt > localTs) {
+        list.splice(idx, 1)
+        if (currentStore.get()?.id === item.id) removedCurrent = true
+        changed = true
+      }
+      continue
+    }
+    if (!looksLikeTrip(item.data)) continue
+    if ((Number(tomb[item.id]) || 0) >= item.updatedAt) continue
+    if (idx >= 0 && item.updatedAt <= localTs) continue
+    const next = { ...item.data, id: item.id, updatedAt: new Date(item.updatedAt).toISOString() }
+    if (idx >= 0) list[idx] = next
+    else list.push(next)
+    changed = true
+  }
+  if (changed) tripsStore.set(list)
+  if (removedCurrent) currentStore.set(null)
+  return changed
 }
 
 /* ————————————————————————————————————————————————
@@ -331,6 +420,8 @@ export function readAll() {
 }
 
 export function wipeAll() {
+  // Effacer ses données, c'est aussi les effacer des autres appareils synchronisés.
+  recordDeletion(tripIdsOf(tripsStore.get()))
   tripsStore.set([])
   currentStore.set(null)
   libraryStore.set([])

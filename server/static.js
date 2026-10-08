@@ -61,10 +61,13 @@ export function serveStatic(req, res, root) {
   }
 
   const ext = extname(filePath)
+  // Pages de partage et de reprise : jamais indexées par les moteurs de recherche.
+  const noindex = /^\/(partage|reprendre)(\/|$)/.test(pathname) ? { 'X-Robots-Tag': 'noindex, nofollow' } : {}
   const isIndex = filePath.endsWith('index.html') || filePath.endsWith('sw.js')
   const immutable = filePath.includes(`${sep}assets${sep}`)
   res.writeHead(200, {
     ...BASE_HEADERS,
+    ...noindex,
     'Content-Type': MIME[ext] || 'application/octet-stream',
     'Cache-Control': isIndex ? 'no-cache' : immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
   })

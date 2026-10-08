@@ -26,6 +26,7 @@ import OffersPanel from '../components/OffersPanel.jsx'
 import SafetyChecks from '../components/SafetyChecks.jsx'
 import DrivingPlan from '../components/DrivingPlan.jsx'
 import NavigationLinks from '../components/NavigationLinks.jsx'
+import SyncShareCard from '../components/SyncShareCard.jsx'
 import {
   PRICED_TYPES,
   fetchLodgingPrices,
@@ -880,6 +881,8 @@ export default function ResultatVoyage() {
                 </p>
               )}
             </Card>
+
+            <SyncShareCard tripId={trip?.id} />
 
             <Card>
               <SectionHeader title="Actions" />

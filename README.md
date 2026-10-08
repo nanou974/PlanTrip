@@ -1,8 +1,12 @@
+<p align="center">
+  <img src="assets/logos/PlanTrip_Logo_Color.png" alt="PlanTrip" width="360">
+</p>
+
 # PlanTrip
 
 > Itinéraire, budget, lieux, documents et checklists réunis dans un seul espace — adapté à votre véhicule et à vos envies. Vos voyages restent consultables hors connexion.
 
-PlanTrip est une application web de préparation de voyage en français. Les voyages sont calculés et conservés **localement** dans le navigateur : aucune donnée de voyage sur un serveur, aucun traceur publicitaire. L'**authentification** (comptes, mots de passe, Magic Link) passe, elle, par le serveur fourni avec l'application — voir [Serveur et authentification](#serveur-et-authentification).
+PlanTrip est une application web de préparation de voyage en français. Les voyages sont calculés et conservés **localement** dans le navigateur ; ils ne vont sur le serveur que si vous activez la **synchronisation** (avec un compte ou sans, voir [Synchronisation et partage](#synchronisation-et-partage)). Aucun traceur publicitaire. L'**authentification** (comptes, mots de passe, Magic Link) passe, elle, par le serveur fourni avec l'application — voir [Serveur et authentification](#serveur-et-authentification).
 
 - Cahier des charges : `PlanTrip-main/PlanTrip-main/README.md` *(référence locale, hors dépôt Git)*
 - Chartes graphiques : `PlanTrip-main/` *(référence locale, hors dépôt Git)* — planches sources de `src/design/` ; textes d'identité : `VISUAL_IDENTITY_GUIDELINES.md`
@@ -175,13 +179,23 @@ confirme par `GET /api/auth/me` et déconnecte l'interface si le serveur répond
 injoignable : l'état local est conservé).
 
 Variables d'environnement du serveur : `ORS_API_KEY` (clé OpenRouteService ; sans elle, `/api/route` répond 503 et le navigateur bascule sur OSRM), `DATATOURISME_API_KEY` (clé gratuite DATAtourisme ; sans elle, `/api/lodging-prices` répond 503 et PlanTrip garde ses estimations d'hébergement ; obtention sur https://www.datatourisme.fr/utiliser-les-donnees/), `ORS_BASE_URL` (défaut `https://api.heigit.org/openrouteservice` ; l'ancien hôte `api.openrouteservice.org` est arrêté début novembre 2026 ; tests / instance auto-hébergée), `HOST`, `PORT` (4174), `DATABASE_PATH`
-
-Variable de compilation (navigateur) : `VITE_STAY22_AID` — identifiant partenaire Stay22 pour la carte « Meilleures offres » (optionnel ; sans lui, seuls les liens de recherche vers les partenaires s'affichent). À définir avant `npm run build`, par exemple dans un fichier `.env.production` non versionné. Les prix d'hébergement affichés par PlanTrip sont des estimations ; le voyageur saisit le prix réel de l'offre retenue.
 (`var/plantrip.db`), `MAIL_MODE` (`file`), `MAILBOX_DIR` (`var/mailbox`), `SMTP_URL`,
 `MAIL_FROM`, `MAGIC_TTL_MIN` (10), `SESSION_TTL_DAYS` (7), `PUBLIC_URL` (origine absolue des
 liens magiques, **obligatoire en production** ; sans elle, seule la boucle locale est acceptée), `TRUST_PROXY` (`1` pour faire
 confiance à `X-Forwarded-For`), `DIST_DIR` (`dist/`). En développement, le proxy Vite cible
 `API_PORT` (4174 par défaut).
+
+Variable de compilation (navigateur) : `VITE_STAY22_AID` — identifiant partenaire Stay22 pour la carte « Meilleures offres » (optionnel ; sans lui, seuls les liens de recherche vers les partenaires s'affichent). À définir avant `npm run build`, par exemple dans un fichier `.env.production` non versionné. Les prix d'hébergement affichés par PlanTrip sont des estimations ; le voyageur saisit le prix réel de l'offre retenue.
+
+### Synchronisation et partage
+
+Le stockage local reste la référence ; la synchronisation est **facultative** et ne démarre qu'à l'action de la personne.
+
+- **Identités** : un compte (session serveur) ou un **espace anonyme** (`POST /api/space` → identifiant + clé de 256 bits ; le serveur ne garde que l'empreinte SHA-256 de la clé, envoyée ensuite dans l'en-tête `X-PlanTrip-Space: id.clé`). Le lien de reprise `/reprendre#id.clé` met la clé dans le fragment, que le navigateur n'envoie pas au serveur.
+- **Fusion** : `POST /api/sync` reçoit les voyages modifiés (et les suppressions) et renvoie l'état du serveur ; la modification la plus récente de chaque voyage l'emporte, une suppression plus récente ne ressuscite pas. À la connexion, `POST /api/sync/adopt` fusionne l'espace anonyme dans le compte. `DELETE /api/sync` efface tout.
+- **Partage en lecture seule** : `POST /api/shares` (jeton de 128 bits, révocable par `DELETE /api/shares/:jeton`), lecture publique `GET /api/shared/:jeton` — version assainie par liste blanche (`server/sync.js`) : jamais notes, documents, listes de contrôle, dépenses ni lieux « adresse personnelle » ; départ masqué (commune, coordonnées arrondies, début du tracé retiré) sauf demande explicite. Réponses `no-store` et `noindex`.
+- **Limites** : 50 voyages par espace, 256 Ko par voyage, 1 Mo par envoi, 20 créations d'espace par adresse et par 10 minutes ; un espace sans activité depuis 12 mois est supprimé, une suppression est purgée après 90 jours.
+- **Client** : `src/services/syncService.js` (synchronisation en arrière-plan, reprise, partage), `src/components/SyncManager.jsx` (déclencheurs), `SyncShareCard.jsx` (interface), pages `PartageVoyage.jsx` et `Reprendre.jsx`.
 
 ### Modèle de données
 

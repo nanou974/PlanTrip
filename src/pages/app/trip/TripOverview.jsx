@@ -20,6 +20,7 @@ import { estimateItinerary, itineraryPoints, itineraryState, routePlaces, sortPl
 import { fetchRoute, profileForVehicle, routePoints, routeToItinerary } from '../../../services/routing.js'
 import { getTrip, upsertTrip } from '../../../state/store.js'
 import { vehicleFor } from '../../../lib/tripInfo.js'
+import SyncShareCard from '../../../components/SyncShareCard.jsx'
 
 const MapView = lazy(() => import('../../../components/MapView.jsx'))
 
@@ -266,6 +267,8 @@ export default function TripOverview() {
           </Card>
         </div>
       </div>
+
+      <SyncShareCard tripId={trip.id} className="mt-6" />
 
       {state === 'incomplete' && (
         <EmptyState

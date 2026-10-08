@@ -32,6 +32,9 @@ import Accessibilite from './pages/legal/Accessibilite.jsx'
 import Faq from './pages/Faq.jsx'
 import Contact from './pages/Contact.jsx'
 import Blog from './pages/Blog.jsx'
+import PartageVoyage from './pages/PartageVoyage.jsx'
+import Reprendre from './pages/Reprendre.jsx'
+import SyncManager from './components/SyncManager.jsx'
 
 const ResultatVoyage = lazy(() => import('./pages/ResultatVoyage.jsx'))
 
@@ -50,6 +53,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <SyncManager />
         <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route element={<AppShell />}>
@@ -75,6 +79,8 @@ export default function App() {
               <Route path="/fonctionnalites" element={<Fonctionnalites />} />
               <Route path="/preparer-son-voyage" element={<PreparerVoyage />} />
               <Route path="/resultat-voyage" element={<ResultatVoyage />} />
+              <Route path="/partage/:token" element={<PartageVoyage />} />
+              <Route path="/reprendre" element={<Reprendre />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/blog" element={<Blog />} />

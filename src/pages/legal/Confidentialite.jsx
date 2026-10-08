@@ -83,17 +83,55 @@ export default function Confidentialite() {
             </li>
           </ul>
           <p className="mt-3 text-sm">
-            Aucun compte, aucun traceur d’analytics n’est utilisé. Les seuls cookies tiers possibles sont ceux de la
-            carte Stay22, uniquement si vous choisissez de l’afficher.
+            Aucun traceur d’analytics n’est utilisé. Les seuls cookies tiers possibles sont ceux de la carte Stay22,
+            uniquement si vous choisissez de l’afficher.
+          </p>
+        </section>
+
+        <section data-testid="sync-privacy">
+          <h2 className="font-display font-semibold text-lg text-pt-neutral">Synchronisation et partage</h2>
+          <p className="mt-2">
+            Par défaut, vos voyages restent <strong>uniquement sur votre appareil</strong>. Si vous activez la
+            synchronisation (avec votre compte, ou sans compte), une copie de vos voyages est enregistrée sur le serveur de
+            PlanTrip pour que vous les retrouviez sur un autre appareil.
+          </p>
+          <ul className="mt-3 list-disc pl-5 space-y-1.5">
+            <li>
+              <strong>Sans compte</strong> : un espace anonyme est créé, protégé par une clé secrète longue et aléatoire
+              que seul votre appareil connaît (le serveur n’en garde que l’empreinte). Le lien de reprise contient cette
+              clé dans son fragment (après le <code>#</code>), que votre navigateur n’envoie jamais au serveur. Qui détient
+              ce lien accède à vos voyages : ne le publiez pas. Sans lui, vos voyages ne sont pas récupérables.
+            </li>
+            <li>
+              <strong>Contenu enregistré</strong> : les voyages tels que vous les avez saisis (lieux, dates, budget, notes,
+              documents et listes de contrôle). Aucune adresse IP n’est associée à votre espace.
+            </li>
+            <li>
+              <strong>Durée</strong> : un espace sans aucune synchronisation depuis 12 mois est supprimé automatiquement,
+              avec ses voyages. Un voyage supprimé est retiré du serveur après avoir été signalé à vos appareils (au plus
+              90 jours).
+            </li>
+            <li>
+              <strong>Suppression</strong> : « Désactiver et effacer du serveur » (dans « Synchronisation et partage »)
+              supprime immédiatement vos voyages et partages du serveur. Ils restent sur votre appareil.
+            </li>
+          </ul>
+          <p className="mt-3">
+            <strong>Liens de partage</strong> : un lien en lecture seule affiche un voyage à toute personne qui le possède.
+            Notes, documents, listes de contrôle, dépenses et lieux de type « adresse personnelle » ne sont jamais
+            partagés. Votre point de départ exact et le début du tracé sont masqués, sauf si vous cochez « Montrer mon
+            point de départ exact ». Vous arrêtez un partage à tout moment ; le lien cesse alors de fonctionner. Ces pages
+            ne sont pas référencées par les moteurs de recherche.
           </p>
         </section>
 
         <section>
           <h2 className="font-display font-semibold text-lg text-pt-neutral">Cookies</h2>
           <p className="mt-2">
-            PlanTrip ne dépose aucun cookie de mesure d’audience ni de publicité. Seul le stockage local du
-            navigateur est utilisé pour mémoriser vos voyages ; il est supprimé lorsque vous effacez vos données
-            depuis <strong>Mon profil</strong> ou les réglages de votre navigateur.
+            PlanTrip ne dépose aucun cookie de mesure d’audience ni de publicité. Le stockage local du navigateur
+            mémorise vos voyages (et, si vous activez la synchronisation sans compte, la clé de votre espace) ; il est
+            supprimé lorsque vous effacez vos données depuis <strong>Mon profil</strong> ou les réglages de votre
+            navigateur. Un cookie de session, nécessaire au fonctionnement, n’est déposé que si vous vous connectez.
           </p>
         </section>
 

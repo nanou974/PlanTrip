@@ -18,6 +18,12 @@ export const KEYS = {
   library: `${NS}.library.v1`,
   memory: `${NS}.memory.v1`,
   prefs: `${NS}.prefs.v1`,
+  /** Espace de synchronisation anonyme de cet appareil : { id, key }. */
+  space: `${NS}.space.v1`,
+  /** Suivi de la synchronisation : { lastSyncAt, lastOkAt, optOut }. */
+  syncMeta: `${NS}.syncmeta.v1`,
+  /** Voyages supprimés ici et pas encore signalés au serveur : { [id]: horodatage }. */
+  tombstones: `${NS}.tombstones.v1`,
 }
 
 export const SCHEMA_VERSION = 1

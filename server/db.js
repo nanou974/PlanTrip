@@ -30,6 +30,28 @@ CREATE TABLE IF NOT EXISTS magic (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+CREATE TABLE IF NOT EXISTS spaces (
+  id TEXT PRIMARY KEY,
+  key_hash TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  last_seen INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS trips (
+  owner TEXT NOT NULL,
+  id TEXT NOT NULL,
+  data TEXT,
+  updated_at INTEGER NOT NULL,
+  deleted INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (owner, id)
+);
+CREATE TABLE IF NOT EXISTS shares (
+  token TEXT PRIMARY KEY,
+  owner TEXT NOT NULL,
+  trip_id TEXT NOT NULL,
+  show_departure INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_shares_owner ON shares(owner, trip_id);
 `
 
 /** Ouvre la base SQLite (fichier ou mémoire) et crée le schéma. */
@@ -99,7 +121,150 @@ export class Store {
       findMagicByToken: db.prepare('SELECT * FROM magic WHERE token_hash = ?'),
       bumpMagicAttempts: db.prepare('UPDATE magic SET attempts = ? WHERE email = ?'),
       deleteMagic: db.prepare('DELETE FROM magic WHERE email = ?'),
+      insertSpace: db.prepare('INSERT INTO spaces (id, key_hash, created_at, last_seen) VALUES (?, ?, ?, ?)'),
+      findSpace: db.prepare('SELECT * FROM spaces WHERE id = ?'),
+      touchSpace: db.prepare('UPDATE spaces SET last_seen = ? WHERE id = ?'),
+      deleteSpace: db.prepare('DELETE FROM spaces WHERE id = ?'),
+      idleSpaces: db.prepare('SELECT id FROM spaces WHERE last_seen < ?'),
+      listTrips: db.prepare('SELECT id, data, updated_at, deleted FROM trips WHERE owner = ? ORDER BY updated_at DESC'),
+      findTrip: db.prepare('SELECT id, data, updated_at, deleted FROM trips WHERE owner = ? AND id = ?'),
+      upsertTrip: db.prepare(
+        `INSERT INTO trips (owner, id, data, updated_at, deleted) VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(owner, id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at, deleted = excluded.deleted`,
+      ),
+      countLiveTrips: db.prepare('SELECT COUNT(*) AS n FROM trips WHERE owner = ? AND deleted = 0'),
+      deleteTripsOf: db.prepare('DELETE FROM trips WHERE owner = ?'),
+      purgeTombstones: db.prepare('DELETE FROM trips WHERE deleted = 1 AND updated_at < ?'),
+      insertShare: db.prepare('INSERT INTO shares (token, owner, trip_id, show_departure, created_at) VALUES (?, ?, ?, ?, ?)'),
+      findShare: db.prepare('SELECT * FROM shares WHERE token = ?'),
+      findShareOfTrip: db.prepare('SELECT * FROM shares WHERE owner = ? AND trip_id = ?'),
+      listShares: db.prepare('SELECT token, trip_id, show_departure, created_at FROM shares WHERE owner = ?'),
+      setShareDeparture: db.prepare('UPDATE shares SET show_departure = ? WHERE token = ?'),
+      deleteShare: db.prepare('DELETE FROM shares WHERE token = ?'),
+      deleteSharesOfTrip: db.prepare('DELETE FROM shares WHERE owner = ? AND trip_id = ?'),
+      deleteSharesOf: db.prepare('DELETE FROM shares WHERE owner = ?'),
+      moveShares: db.prepare('UPDATE shares SET owner = ? WHERE owner = ?'),
     }
+  }
+
+  /* ——— Espaces anonymes ——— */
+
+  createSpace(id, keyHash, now = Date.now()) {
+    this.stmts.insertSpace.run(id, keyHash, now, now)
+  }
+
+  findSpace(id) {
+    return this.stmts.findSpace.get(id) || null
+  }
+
+  touchSpace(id, now = Date.now()) {
+    this.stmts.touchSpace.run(now, id)
+  }
+
+  /** Supprime un espace, ses voyages et ses partages. */
+  deleteSpaceCompletely(id) {
+    this.wipeOwner(`s:${id}`)
+    this.stmts.deleteSpace.run(id)
+  }
+
+  /** Supprime les espaces sans activité depuis `cutoff` et les suppressions trop anciennes. */
+  purge({ idleCutoff, tombstoneCutoff }) {
+    for (const row of this.stmts.idleSpaces.all(idleCutoff)) this.deleteSpaceCompletely(row.id)
+    this.stmts.purgeTombstones.run(tombstoneCutoff)
+  }
+
+  /* ——— Voyages synchronisés ——— */
+
+  listOwnerTrips(owner) {
+    return this.stmts.listTrips.all(owner).map((row) => ({
+      id: row.id,
+      updatedAt: row.updated_at,
+      deleted: Boolean(row.deleted),
+      data: row.deleted || !row.data ? null : JSON.parse(row.data),
+    }))
+  }
+
+  findOwnerTrip(owner, id) {
+    const row = this.stmts.findTrip.get(owner, id)
+    return row ? { id: row.id, updatedAt: row.updated_at, deleted: Boolean(row.deleted), data: row.data ? JSON.parse(row.data) : null } : null
+  }
+
+  countLiveTrips(owner) {
+    return this.stmts.countLiveTrips.get(owner).n
+  }
+
+  /**
+   * Applique un voyage reçu : la modification la plus récente l'emporte (égalité : le serveur garde la sienne).
+   * Renvoie 'stored' ou 'stale'.
+   */
+  applyTrip(owner, item) {
+    const existing = this.stmts.findTrip.get(owner, item.id)
+    if (existing && existing.updated_at >= item.updatedAt) return 'stale'
+    this.stmts.upsertTrip.run(owner, item.id, item.deleted ? null : JSON.stringify(item.data), item.updatedAt, item.deleted ? 1 : 0)
+    if (item.deleted) this.stmts.deleteSharesOfTrip.run(owner, item.id)
+    return 'stored'
+  }
+
+  /** Supprime tous les voyages et partages d'un propriétaire. */
+  wipeOwner(owner) {
+    this.stmts.deleteTripsOf.run(owner)
+    this.stmts.deleteSharesOf.run(owner)
+  }
+
+  /** Fusionne les voyages d'un espace anonyme dans un compte (le plus récent gagne), puis vide l'espace. */
+  adoptSpace(spaceId, userId) {
+    const from = `s:${spaceId}`
+    const to = `u:${userId}`
+    this.db.exec('BEGIN')
+    try {
+      for (const t of this.stmts.listTrips.all(from)) {
+        this.applyTrip(to, {
+          id: t.id,
+          updatedAt: t.updated_at,
+          deleted: Boolean(t.deleted),
+          data: t.data ? JSON.parse(t.data) : null,
+        })
+      }
+      // Les partages suivent leurs voyages, sauf ceux dont le voyage n'existe plus côté compte.
+      this.stmts.moveShares.run(to, from)
+      this.stmts.deleteTripsOf.run(from)
+      this.stmts.deleteSpace.run(spaceId)
+      this.db.exec('COMMIT')
+    } catch (err) {
+      this.db.exec('ROLLBACK')
+      throw err
+    }
+  }
+
+  /* ——— Partages ——— */
+
+  createShare(token, owner, tripId, showDeparture, now = Date.now()) {
+    this.stmts.insertShare.run(token, owner, tripId, showDeparture ? 1 : 0, now)
+  }
+
+  findShare(token) {
+    return this.stmts.findShare.get(token) || null
+  }
+
+  findShareOfTrip(owner, tripId) {
+    return this.stmts.findShareOfTrip.get(owner, tripId) || null
+  }
+
+  listOwnerShares(owner) {
+    return this.stmts.listShares.all(owner).map((r) => ({
+      token: r.token,
+      tripId: r.trip_id,
+      showDeparture: Boolean(r.show_departure),
+      createdAt: r.created_at,
+    }))
+  }
+
+  setShareDeparture(token, showDeparture) {
+    this.stmts.setShareDeparture.run(showDeparture ? 1 : 0, token)
+  }
+
+  deleteShare(token) {
+    this.stmts.deleteShare.run(token)
   }
 
   /**

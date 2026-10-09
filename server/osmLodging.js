@@ -15,17 +15,25 @@ export const MAX_TILES = 40
 const MAX_POLYLINE_POINTS = 400
 const CACHE_TTL_MS = 3 * 24 * 3600_000
 const CACHE_MAX = 300
-const UPSTREAM_TIMEOUT_MS = 30_000
+const UPSTREAM_TIMEOUT_MS = 12_000
+/** Un serveur Overpass en échec est écarté ce temps-là (sauf s'il n'en reste aucun). */
+const COOLDOWN_MS = 45_000
+/** Au-delà, on répond avec ce qui est déjà chargé ; les tuiles restantes continuent de remplir le cache. */
+export const DEADLINE_MS = 20_000
 const CONCURRENCY = 2
-const ELEMENT_CAP = 2500
+const ELEMENT_CAP = 3000
 const USER_AGENT = 'PlanTrip/1.0 (+https://plantrip.fr)'
 export const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.private.coffee/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
 ]
-const AIRE_FILTER = '["tourism"="caravan_site"]'
-const OTHER_FILTER = '["tourism"~"^(hotel|hostel|motel|guest_house|camp_site|apartment)$"]'
+/**
+ * Types servis : ceux des véhicules qui en ont besoin (camping-car, van). Les hôtels et gîtes se comptent par
+ * milliers dans une tuile de 0,5° : leurs requêtes seraient trop lentes, ils restent cherchés le long du trajet.
+ */
+export const OSM_TYPES = { aire: 'caravan_site', camping: 'camp_site' }
+const DEFAULT_TYPES = ['aire', 'camping']
 
 const tileIndex = (v) => Math.floor(v / TILE_DEG)
 export const tileKey = (latIdx, lonIdx) => `${latIdx}:${lonIdx}`
@@ -45,22 +53,27 @@ export function validateRequest(body) {
     }
     polyline.push([lon, lat])
   }
+  const wanted = body?.types === undefined ? DEFAULT_TYPES : body.types
+  if (!Array.isArray(wanted) || !wanted.length || wanted.some((x) => !Object.hasOwn(OSM_TYPES, x))) {
+    return { error: "Types d'hébergement non pris en charge." }
+  }
+  const types = [...new Set(wanted)].sort()
   const radius = Number(body?.radiusMeters)
   const radiusMeters = Number.isFinite(radius) ? Math.min(8000, Math.max(1000, Math.round(radius))) : 5000
-  return { polyline, radiusMeters }
+  return { polyline, radiusMeters, types }
 }
 
 /** Tuiles (clé -> bornes) traversées par le couloir du trajet. */
-export function tilesFor(polyline, radiusMeters) {
+export function tilesFor(polyline, radiusMeters, types = DEFAULT_TYPES) {
   const padLat = radiusMeters / 111_000
   const tiles = new Map()
   const add = (lat, lon) => {
     const padLon = padLat / Math.max(0.2, Math.cos((lat * Math.PI) / 180))
     for (let a = tileIndex(lat - padLat); a <= tileIndex(lat + padLat); a += 1) {
       for (let b = tileIndex(lon - padLon); b <= tileIndex(lon + padLon); b += 1) {
-        const key = tileKey(a, b)
+        const key = `${tileKey(a, b)}|${types.join('+')}`
         if (!tiles.has(key)) {
-          tiles.set(key, { key, south: a * TILE_DEG, west: b * TILE_DEG, north: (a + 1) * TILE_DEG, east: (b + 1) * TILE_DEG })
+          tiles.set(key, { key, types, south: a * TILE_DEG, west: b * TILE_DEG, north: (a + 1) * TILE_DEG, east: (b + 1) * TILE_DEG })
         }
       }
     }
@@ -88,8 +101,9 @@ function slim(elements) {
   return out
 }
 
-export function createOsmLodgingService({ config = {}, fetchImpl = fetch, endpoints = OVERPASS_ENDPOINTS } = {}) {
+export function createOsmLodgingService({ config = {}, fetchImpl = fetch, endpoints = OVERPASS_ENDPOINTS, deadlineMs = DEADLINE_MS } = {}) {
   const cache = new Map()
+  const coolingUntil = new Map()
   const inflight = new Map()
   const log = config.logger || console
 
@@ -99,10 +113,11 @@ export function createOsmLodgingService({ config = {}, fetchImpl = fetch, endpoi
   }
 
   async function queryTile(tile) {
-    // Les aires (rares) ne sont jamais plafonnées : elles ne doivent pas disparaître parmi des milliers d'hôtels.
     const bbox = `(${tile.south},${tile.west},${tile.north},${tile.east})`
-    const query = `[out:json][timeout:25];nwr${AIRE_FILTER}${bbox}->.a;.a out center tags;nwr${OTHER_FILTER}${bbox}->.b;.b out center tags ${ELEMENT_CAP};`
-    for (const url of endpoints) {
+    const osmTypes = tile.types.map((x) => OSM_TYPES[x]).join('|')
+    const query = `[out:json][timeout:25];nwr["tourism"~"^(${osmTypes})$"]${bbox};out center tags ${ELEMENT_CAP};`
+    const usable = endpoints.filter((u) => (coolingUntil.get(u) || 0) <= Date.now())
+    for (const url of usable.length ? usable : endpoints) {
       try {
         const res = await fetchImpl(url, {
           method: 'POST',
@@ -115,9 +130,11 @@ export function createOsmLodgingService({ config = {}, fetchImpl = fetch, endpoi
           if (Array.isArray(json?.elements)) return slim(json.elements)
         } else {
           log.warn(`[plantrip-osm] Overpass ${res.status} (${new URL(url).host}) tuile ${tile.key}`)
+          coolingUntil.set(url, Date.now() + COOLDOWN_MS)
         }
       } catch (err) {
         log.warn(`[plantrip-osm] Overpass injoignable (${new URL(url).host} : ${err?.name || 'erreur'}) tuile ${tile.key}`)
+        coolingUntil.set(url, Date.now() + COOLDOWN_MS)
       }
     }
     return null
@@ -145,7 +162,7 @@ export function createOsmLodgingService({ config = {}, fetchImpl = fetch, endpoi
   async function compute(body, { allowUpstream } = {}) {
     const q = validateRequest(body)
     if (q.error) return { status: 400, payload: { error: 'bad_request', message: q.error } }
-    const tiles = tilesFor(q.polyline, q.radiusMeters)
+    const tiles = tilesFor(q.polyline, q.radiusMeters, q.types)
     if (tiles.length > MAX_TILES) {
       return { status: 422, payload: { error: 'route_too_long', message: 'Trajet trop long pour cette recherche.' } }
     }
@@ -158,7 +175,7 @@ export function createOsmLodgingService({ config = {}, fetchImpl = fetch, endpoi
       return { status: 429, payload: { error: 'too_many_requests', message: 'Trop de recherches, réessayez dans quelques minutes.' } }
     }
 
-    const results = new Array(tiles.length)
+    const results = new Array(tiles.length).fill(undefined)
     let next = 0
     const worker = async () => {
       while (next < tiles.length) {
@@ -167,9 +184,16 @@ export function createOsmLodgingService({ config = {}, fetchImpl = fetch, endpoi
         results[i] = await loadTile(tiles[i])
       }
     }
-    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, tiles.length) }, worker))
+    const all = Promise.all(Array.from({ length: Math.min(CONCURRENCY, tiles.length) }, worker))
+    let timer
+    const deadline = new Promise((resolve) => {
+      timer = setTimeout(resolve, deadlineMs)
+    })
+    await Promise.race([all, deadline])
+    clearTimeout(timer)
 
-    const failed = results.filter((r) => r === null).length
+    // `undefined` = tuile encore en cours à l'échéance ; `null` = échec. Les deux rendent le résultat partiel.
+    const failed = results.filter((r) => !r).length
     if (failed === tiles.length) {
       return { status: 502, payload: { error: 'upstream_unreachable', message: 'Service de recherche indisponible.' } }
     }

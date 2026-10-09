@@ -195,13 +195,13 @@ export default function ResultatVoyage() {
   useEffect(() => {
     if (!route) return undefined
     let alive = true
-    findAccommodations(route.coordinates).then((items) => {
+    findAccommodations(route.coordinates, { types: lodgingTypesFor(slug) }).then((items) => {
       if (alive) setAccomResult({ route, items: items || [], error: items === null })
     })
     return () => {
       alive = false
     }
-  }, [route])
+  }, [route, slug])
 
   const allowedLodging = useMemo(() => lodgingTypesFor(slug), [slug])
   const mapAccoms = useMemo(

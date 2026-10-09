@@ -64,19 +64,26 @@ describe('recherche via le serveur PlanTrip', () => {
       if (url === '/api/lodging-map') return { ok: false, status: 502 }
       return { ok: true, json: async () => ({ elements: [aire] }) }
     })
-    const items = await findAccommodations(route)
+    const items = await findAccommodations(route, { types: ['aire', 'camping'] })
     expect(items).toHaveLength(1)
     expect(fetch.mock.calls.some(([u]) => String(u).includes('overpass'))).toBe(true)
   })
 
   it('findAccommodations n’appelle pas Overpass quand le serveur a répondu', async () => {
     fetch.mockResolvedValue({ ok: true, json: async () => ({ elements: [aire] }) })
-    await findAccommodations(route)
+    await findAccommodations(route, { types: ['aire', 'camping'] })
     expect(fetch.mock.calls.every(([u]) => u === '/api/lodging-map')).toBe(true)
   })
 
   it('findAccommodations renvoie null quand ni le serveur ni Overpass ne répondent', async () => {
     fetch.mockRejectedValue(new Error('offline'))
-    expect(await findAccommodations(route)).toBeNull()
+    expect(await findAccommodations(route, { types: ['aire', 'camping'] })).toBeNull()
+  })
+
+  it('les véhicules qui cherchent aussi des hôtels restent sur Overpass direct (requêtes le long du trajet)', async () => {
+    fetch.mockResolvedValue({ ok: true, json: async () => ({ elements: [aire] }) })
+    await findAccommodations(route, { types: ['hotel', 'apartment', 'camping'] })
+    expect(fetch.mock.calls.some(([u]) => u === '/api/lodging-map')).toBe(false)
+    expect(fetch.mock.calls.some(([u]) => String(u).includes('overpass'))).toBe(true)
   })
 })

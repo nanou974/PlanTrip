@@ -263,13 +263,13 @@ export function toAccommodations(elements, polyline, radius) {
  * Hébergements via le serveur PlanTrip (cache, client Overpass identifié).
  * @returns {Promise<Array|null>} `null` = serveur absent, saturé ou injoignable : l'appelant se replie sur Overpass direct.
  */
-export async function searchAccommodationsViaServer(polyline, { radiusMeters = 5000, signal } = {}) {
+export async function searchAccommodationsViaServer(polyline, { radiusMeters = 5000, types, signal } = {}) {
   if (!Array.isArray(polyline) || polyline.length < 2) return []
   try {
     const res = await fetch('/api/lodging-map', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ polyline: samplePolyline(polyline, 300), radiusMeters }),
+      body: JSON.stringify({ polyline: samplePolyline(polyline, 300), radiusMeters, ...(types ? { types } : {}) }),
       signal,
     })
     if (!res.ok) return null
@@ -282,13 +282,22 @@ export async function searchAccommodationsViaServer(polyline, { radiusMeters = 5
   }
 }
 
-/** Serveur PlanTrip d'abord, Overpass direct en secours. `null` = aucun des deux n'a répondu. */
+/** Types que le serveur PlanTrip sait chercher vite (aires et campings) ; les hôtels restent cherchés le long du trajet. */
+const SERVER_TYPES = ['aire', 'camping']
+
+/**
+ * Hébergements du trajet. Pour les véhicules qui ne cherchent que des aires et des campings (camping-car, van),
+ * le serveur PlanTrip d'abord (cache, tarifs et services OpenStreetMap) ; sinon, ou s'il ne répond pas,
+ * Overpass direct. `null` = aucun des deux n'a répondu.
+ */
 export async function findAccommodations(polyline, options = {}) {
-  const viaServer = await searchAccommodationsViaServer(polyline, options)
-  if (viaServer) return viaServer
+  const { types } = options
+  if (Array.isArray(types) && types.length && types.every((t) => SERVER_TYPES.includes(t))) {
+    const viaServer = await searchAccommodationsViaServer(polyline, options)
+    if (viaServer) return viaServer
+  }
   return searchAccommodations(polyline, options)
 }
-
 async function runAccommodationQuery(polyline, { points, radius, cap }, signal) {
   const query = `[out:json][timeout:25];nwr${ACCOMMODATION_FILTER}${aroundClause(polyline, radius, points)};out center ${cap};`
   return overpassQuery(query, signal)

@@ -24,6 +24,14 @@ describe('validateRequest', () => {
     expect(validateRequest({ polyline: PARIS_LYON, radiusMeters: 10 }).radiusMeters).toBe(1000)
   })
 
+  it('refuse les types d’hébergement que le service ne sert pas (hôtels : trop lourds)', () => {
+    expect(validateRequest({ polyline: PARIS_LYON, types: ['hotel'] }).error).toBeTruthy()
+    expect(validateRequest({ polyline: PARIS_LYON, types: [] }).error).toBeTruthy()
+    expect(validateRequest({ polyline: PARIS_LYON, types: 'aire' }).error).toBeTruthy()
+    expect(validateRequest({ polyline: PARIS_LYON, types: ['camping', 'aire', 'aire'] }).types).toEqual(['aire', 'camping'])
+    expect(validateRequest({ polyline: PARIS_LYON }).types).toEqual(['aire', 'camping'])
+  })
+
   it('refuse un tracé absent, trop court, trop long ou non numérique', () => {
     expect(validateRequest({}).error).toBeTruthy()
     expect(validateRequest({ polyline: [[1, 1]] }).error).toBeTruthy()
@@ -57,7 +65,8 @@ describe('createOsmLodgingService', () => {
     expect(payload.elements[0].tags).toEqual({ tourism: 'caravan_site', name: 'Aire', fee: 'yes', charge: '10 EUR' })
     const [, init] = fetchImpl.mock.calls[0]
     expect(init.headers['User-Agent']).toMatch(/PlanTrip/)
-    expect(decodeURIComponent(init.body)).toContain('caravan_site')
+    expect(decodeURIComponent(init.body)).toContain('caravan_site|camp_site')
+    expect(decodeURIComponent(init.body)).not.toContain('hotel')
     expect(payload.partial).toBe(false)
   })
 
@@ -110,5 +119,45 @@ describe('createOsmLodgingService', () => {
     })
     const { status } = await service(fetchImpl).compute({ polyline: [[2.35, 48.85], [2.4, 48.9]] })
     expect(status).toBe(502)
+  })
+})
+
+describe('échéance et serveurs en panne', () => {
+  const bigRoute = [[2.35, 48.85], [4.83, 45.76]]
+
+  it('répond avec ce qui est déjà chargé quand Overpass traîne (résultat partiel)', async () => {
+    let calls = 0
+    const fetchImpl = vi.fn(() => {
+      calls += 1
+      return calls <= 2 ? Promise.resolve(overpassAnswer([aire])) : new Promise(() => {})
+    })
+    const svc = createOsmLodgingService({ config: { logger: { warn: () => {} } }, fetchImpl, endpoints: ['https://a.test/api'], deadlineMs: 60 })
+    const { status, payload } = await svc.compute({ polyline: bigRoute })
+    expect(status).toBe(200)
+    expect(payload.partial).toBe(true)
+    expect(payload.elements).toHaveLength(1)
+  })
+
+  it('renvoie 502 si rien n’est arrivé à l’échéance', async () => {
+    const fetchImpl = vi.fn(() => new Promise(() => {}))
+    const svc = createOsmLodgingService({ config: { logger: { warn: () => {} } }, fetchImpl, endpoints: ['https://a.test/api'], deadlineMs: 40 })
+    expect((await svc.compute({ polyline: bigRoute })).status).toBe(502)
+  })
+
+  it('écarte un serveur Overpass en échec pendant un moment', async () => {
+    const hosts = []
+    const fetchImpl = vi.fn(async (url) => {
+      hosts.push(new URL(url).host)
+      return url.includes('bad.test') ? { ok: false, status: 500, json: async () => ({}) } : overpassAnswer([])
+    })
+    const svc = createOsmLodgingService({
+      config: { logger: { warn: () => {} } },
+      fetchImpl,
+      endpoints: ['https://bad.test/api', 'https://good.test/api'],
+    })
+    const { status } = await svc.compute({ polyline: bigRoute })
+    expect(status).toBe(200)
+    expect(hosts.filter((h) => h === 'bad.test').length).toBeLessThanOrEqual(2)
+    expect(hosts.filter((h) => h === 'good.test').length).toBeGreaterThan(hosts.filter((h) => h === 'bad.test').length)
   })
 })

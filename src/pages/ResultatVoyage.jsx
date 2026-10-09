@@ -9,7 +9,8 @@ import { formatDuration, formatEUR, formatNumber, plural, tripDurationLabel } fr
 import { round2 } from '../domain/budget.js'
 import { estimateTripCosts } from '../domain/estimate.js'
 import { estimateItinerary, isGeoPoint, itineraryPoints, routePlaces } from '../domain/itinerary.js'
-import { searchAccommodations } from '../services/places.js'
+import { findAccommodations } from '../services/places.js'
+import { describeOsmLodging, suggestedNightlyInput } from '../domain/osmTags.js'
 import { vehicleFor, vehicleIcon } from '../lib/tripInfo.js'
 import { labelMarker } from '../lib/leaflet-a11y.js'
 import { useOnlineStatus } from '../lib/online.js'
@@ -194,7 +195,7 @@ export default function ResultatVoyage() {
   useEffect(() => {
     if (!route) return undefined
     let alive = true
-    searchAccommodations(route.coordinates).then((items) => {
+    findAccommodations(route.coordinates).then((items) => {
       if (alive) setAccomResult({ route, items: items || [], error: items === null })
     })
     return () => {
@@ -287,9 +288,10 @@ export default function ResultatVoyage() {
       const typeLabel = LODGING_TYPES[accom.type]?.label || 'Autre'
       labelMarker(m, `${typeLabel} : ${accom.name}`)
       m.addTo(mapInstance.current)
+      const osmInfo = describeOsmLodging(accom)
       m.bindPopup(`<b>${escapeHtml(accom.name)}</b><br>${escapeHtml(typeLabel)}${
         accom.stars ? ` • ${escapeHtml(accom.stars)}★` : ''
-      }`)
+      }` + (osmInfo.price ? `<br>${escapeHtml(osmInfo.price)}` : '') + (osmInfo.services ? `<br>${escapeHtml(osmInfo.services)}` : ''))
       m.on('click', () => {
         setSelectedAccom({
           id: `map-${accom.id}`,
@@ -300,7 +302,7 @@ export default function ResultatVoyage() {
           desc: `${typeLabel} trouvé sur la carte`,
           mapAccom: accom,
         })
-        setNightlyInput('')
+        setNightlyInput(suggestedNightlyInput(accom))
       })
       markersRef.current.push(m)
     })
@@ -725,6 +727,13 @@ export default function ResultatVoyage() {
               )}
               {nights > 0 && (
                 <div className="mt-3">
+                  {selectedAccom?.mapAccom && (selectedAccom.mapAccom.fee || selectedAccom.mapAccom.price != null) && (
+                    <p className="text-xs text-pt-neutral/75 mb-2" data-testid="osm-price-note">
+                      Tarif indiqué sur OpenStreetMap pour « {selectedAccom.mapAccom.name} » :{' '}
+                      <strong>{describeOsmLodging(selectedAccom.mapAccom).price}</strong>. Données collaboratives, à vérifier sur
+                      place. © contributeurs OpenStreetMap.
+                    </p>
+                  )}
                   <label htmlFor="accom-real-price" className="text-xs font-semibold uppercase text-pt-neutral/75">
                     Prix réel trouvé (€ par nuit)
                   </label>

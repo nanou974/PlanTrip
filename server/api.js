@@ -15,6 +15,7 @@ import { normalizeEmail, publicUser } from './db.js'
 import { sendMagicEmail } from './mailer.js'
 import { createRouteService } from './route.js'
 import { createLodgingPriceService } from './lodgingPrices.js'
+import { createOsmLodgingService } from './osmLodging.js'
 import { MAX_SYNC_BODY, MAX_TRIPS, SPACE_IDLE_MS, TOMBSTONE_TTL_MS, sanitizeForShare, validateIncoming } from './sync.js'
 
 export const SESSION_COOKIE = 'pt_session'
@@ -137,7 +138,10 @@ export function createApiHandler({ store, config }) {
   const routeIpLimiter = createRateLimiter({ max: 40, windowMs: 10 * 60_000 })
   const routeService = createRouteService({ config, fetchImpl: config.fetchImpl || fetch })
   const priceIpLimiter = createRateLimiter({ max: 60, windowMs: 10 * 60_000 })
+  // Hébergements OpenStreetMap : ne compte que les recherches qui doivent interroger Overpass (tuiles absentes du cache).
+  const osmIpLimiter = createRateLimiter({ max: 30, windowMs: 10 * 60_000 })
   const priceService = createLodgingPriceService({ config, fetchImpl: config.fetchImpl || fetch })
+  const osmService = createOsmLodgingService({ config, fetchImpl: config.fetchImpl || fetch })
   // Espaces anonymes : chaque création est une ligne en base, donc limitée par adresse.
   const spaceIpLimiter = createRateLimiter({ max: 20, windowMs: 10 * 60_000 })
   const syncLimiter = createRateLimiter({ max: 240, windowMs: 10 * 60_000 })
@@ -517,6 +521,14 @@ export function createApiHandler({ store, config }) {
     return sendJson(res, 200, payload)
   }
 
+  async function handleLodgingMap(req, res) {
+    const body = await readBody(req, 128 * 1024)
+    const ipKey = `osm-ip:${clientIp(req, config)}`
+    const { status, payload } = await osmService.compute(body, { allowUpstream: () => osmIpLimiter.hit(ipKey) })
+    if (status !== 200) return fail(res, status, payload.error, payload.message)
+    res.setHeader('Cache-Control', 'no-store')
+    return sendJson(res, 200, payload)
+  }
   async function handleLodgingPrices(req, res, url) {
     const ipKey = `price-ip:${clientIp(req, config)}`
     const query = { lat: url.searchParams.get('lat'), lon: url.searchParams.get('lon'), type: url.searchParams.get('type') }
@@ -544,6 +556,7 @@ export function createApiHandler({ store, config }) {
     if (req.method === 'DELETE' && path.startsWith('/api/shares/')) return handleShareDelete(req, res, path.slice('/api/shares/'.length))
     if (req.method === 'GET' && path.startsWith('/api/shared/')) return handleShared(req, res, path.slice('/api/shared/'.length))
     if (req.method === 'GET' && path === '/api/lodging-prices') return handleLodgingPrices(req, res, url)
+    if (req.method === 'POST' && path === '/api/lodging-map') return handleLodgingMap(req, res)
     if (req.method === 'POST' && path === '/api/auth/register') return handleRegister(req, res)
     if (req.method === 'POST' && path === '/api/auth/login') return handleLogin(req, res)
     if (req.method === 'POST' && path === '/api/auth/password') return handlePassword(req, res)

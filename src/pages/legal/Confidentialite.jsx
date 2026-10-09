@@ -57,9 +57,13 @@ export default function Confidentialite() {
               <strong>OpenStreetMap</strong> — affichage des tuiles cartographiques.
             </li>
             <li>
-              <strong>Overpass (OpenStreetMap)</strong> — recherche d’hébergements et de lieux le long de votre trajet.
-              Des points échantillonnés de votre itinéraire sont envoyés depuis votre navigateur, sans lien avec votre
-              identité ; un serveur de secours peut être interrogé si le premier est saturé.
+              <strong>Overpass (OpenStreetMap)</strong> - recherche d'hébergements le long de votre trajet, dont les aires de
+              camping-car avec leur tarif et leurs services quand ils sont indiqués. La demande passe par le serveur de PlanTrip,
+              qui interroge Overpass par zones géographiques d'environ 50 km de côté : ni votre adresse IP ni votre identité ne
+              sont transmises à Overpass, et les points de votre itinéraire ne sont pas conservés. Les résultats par zone restent
+              en mémoire du serveur quelques jours. Si le serveur est indisponible, votre navigateur interroge Overpass
+              directement avec un échantillon de points de votre itinéraire. Données © contributeurs OpenStreetMap, licence
+              ODbL.
             </li>
             <li>
               <strong>DATAtourisme</strong> — tarifs d’hébergement relevés près de votre destination et de vos étapes de nuit.

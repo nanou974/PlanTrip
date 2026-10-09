@@ -1,4 +1,5 @@
 import { estimateItinerary, haversine, itineraryPoints } from '../domain/itinerary.js'
+import { osmServices, parseOsmFee } from '../domain/osmTags.js'
 import { vehicleFor } from '../lib/tripInfo.js'
 
 export const POI_CATEGORIES = [
@@ -224,14 +225,23 @@ export async function searchAccommodations(polyline, { radiusMeters = 5000, sign
   }
   if (!json) return null
 
+  return toAccommodations(json.elements, polyline, used.radius)
+}
+
+/**
+ * Éléments OpenStreetMap (Overpass ou serveur PlanTrip) -> hébergements affichables :
+ * dans le couloir, avec prix et services quand OpenStreetMap les indique, un par zone et par type.
+ */
+export function toAccommodations(elements, polyline, radius) {
   const items = []
-  for (const el of json.elements || []) {
+  for (const el of elements || []) {
     const lat = el.lat ?? el.center?.lat
     const lon = el.lon ?? el.center?.lon
     if (lat == null || lon == null) continue
     const distanceMeters = distanceToPathMeters({ lat, lon }, polyline)
-    if (distanceMeters > used.radius) continue
+    if (distanceMeters > radius) continue
     const tags = el.tags || {}
+    const { fee, price } = parseOsmFee(tags)
     items.push({
       id: `${el.type}-${el.id}`,
       name: tags.name || tags['name:fr'] || 'Sans nom',
@@ -240,10 +250,43 @@ export async function searchAccommodations(polyline, { radiusMeters = 5000, sign
       type: accommodationType(tags),
       stars: tags.stars || null,
       website: tags.website || null,
+      fee,
+      price,
+      services: osmServices(tags),
       distanceMeters: Math.round(distanceMeters),
     })
   }
   return thinByCell(items).sort((a, b) => a.distanceMeters - b.distanceMeters)
+}
+
+/**
+ * Hébergements via le serveur PlanTrip (cache, client Overpass identifié).
+ * @returns {Promise<Array|null>} `null` = serveur absent, saturé ou injoignable : l'appelant se replie sur Overpass direct.
+ */
+export async function searchAccommodationsViaServer(polyline, { radiusMeters = 5000, signal } = {}) {
+  if (!Array.isArray(polyline) || polyline.length < 2) return []
+  try {
+    const res = await fetch('/api/lodging-map', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ polyline: samplePolyline(polyline, 300), radiusMeters }),
+      signal,
+    })
+    if (!res.ok) return null
+    const json = await res.json()
+    if (!Array.isArray(json?.elements)) return null
+    return toAccommodations(json.elements, polyline, radiusMeters)
+  } catch (err) {
+    if (err?.name === 'AbortError') throw err
+    return null
+  }
+}
+
+/** Serveur PlanTrip d'abord, Overpass direct en secours. `null` = aucun des deux n'a répondu. */
+export async function findAccommodations(polyline, options = {}) {
+  const viaServer = await searchAccommodationsViaServer(polyline, options)
+  if (viaServer) return viaServer
+  return searchAccommodations(polyline, options)
 }
 
 async function runAccommodationQuery(polyline, { points, radius, cap }, signal) {
